@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { admin } from '../../api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Users, BarChart3, Clock, CheckCircle2, Shield, Calendar } from 'lucide-react';
+import { Users, BarChart3, Clock, CheckCircle2, Shield, Calendar, Loader2 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { token } = useAuth();
@@ -34,16 +34,21 @@ export default function AdminDashboard() {
     fetchAdminData();
   }, [token]);
 
-  if (loading) return <div className="p-8 text-center text-zinc-500">Loading admin view...</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-zinc-500">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+      <p>Loading admin view...</p>
+    </div>
+  );
   if (error) return <div className="p-8 text-center text-red-500 bg-red-50 rounded-xl">{error}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-zinc-900">Admin Overview</h2>
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-white">
           <Shield className="w-3 h-3 mr-1" />
-          God Mode
+          Administrator
         </span>
       </div>
 
@@ -112,7 +117,7 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 font-medium text-zinc-900">{emp.name}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded text-xs ${
-                          emp.role === 'Admin' ? 'bg-purple-100 text-purple-700' :
+                          emp.role === 'Admin' ? 'bg-zinc-800 text-white' :
                           emp.role === 'Security' ? 'bg-blue-100 text-blue-700' :
                           'bg-zinc-100 text-zinc-700'
                         }`}>

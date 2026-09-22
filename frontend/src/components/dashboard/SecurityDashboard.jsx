@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, X, Clock, CheckCircle2, AlertCircle, ChevronDown, Loader2 } from 'lucide-react';
+import { Search, Plus, X, Clock, CheckCircle2, AlertCircle, ChevronDown, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { visitors } from '../../api';
 import { getSocket } from '../../api/socket';
@@ -383,7 +383,7 @@ export default function SecurityDashboard() {
               <div className="border-t border-zinc-100 pt-4 mb-6">
                 <div className="flex justify-between items-center mb-3 cursor-pointer">
                   <h4 className="font-medium text-zinc-900 flex items-center">
-                    <span className="w-4 h-4 mr-2 inline-flex items-center justify-center border border-zinc-300 rounded text-[10px]">📄</span>
+                    <FileText className="w-4 h-4 mr-2 text-zinc-400" />
                     Other Details
                   </h4>
                   <ChevronDown className="w-4 h-4 text-zinc-400" />
@@ -401,7 +401,7 @@ export default function SecurityDashboard() {
             <div className="p-4 border-t border-zinc-100 bg-zinc-50 rounded-b-xl flex justify-center">
               {selectedVisitor.status === 'CheckedIn' ? (
                 <Button 
-                  className="w-full bg-[#0a235c] hover:bg-blue-900 text-white rounded-lg"
+                  className="w-full bg-[#0a235c] hover:bg-blue-900 text-white"
                   onClick={() => handleCheckout(selectedVisitor.id)}
                   isLoading={isProcessing}
                 >
@@ -409,7 +409,7 @@ export default function SecurityDashboard() {
                 </Button>
               ) : selectedVisitor.status === 'Approved' ? (
                 <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
                   onClick={() => handleCheckin(selectedVisitor.id)}
                   isLoading={isProcessing}
                 >
