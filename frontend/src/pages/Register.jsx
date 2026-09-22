@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auth as authApi, offices } from '../api';
@@ -14,6 +14,7 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
+    role: 'Host',
     office_id: ''
   });
   const [availableOffices, setAvailableOffices] = useState([]);
@@ -41,8 +42,8 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const { name, email, password, office_id } = formData;
-      const registerData = await authApi.register({ name, email, password, office_id });
+      const { name, email, password, role, office_id } = formData;
+      const registerData = await authApi.register({ name, email, password, role, office_id });
       
       // Immediately log them in
       const loginData = await authApi.login({ email, password });
@@ -116,8 +117,23 @@ export default function Register() {
                 required
               >
                 {availableOffices.map(o => (
-                  <option key={o.id} value={o.id}>{o.name} - {o.location}</option>
+                  <option key={o.id} value={o.id}>{o.name} - {o.address}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <select 
+                id="role" 
+                value={formData.role} 
+                onChange={handleChange} 
+                className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                required
+              >
+                <option value="Host">Host</option>
+                <option value="Security">Front Desk / Security</option>
+                <option value="Admin">Admin</option>
               </select>
             </div>
 

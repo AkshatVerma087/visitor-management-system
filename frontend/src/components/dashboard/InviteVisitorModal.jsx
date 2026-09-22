@@ -14,6 +14,7 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
   // New invite state
   const [inviteData, setInviteData] = useState({
     event_title: '',
+    visit_type: 'Meeting',
     visit_date: '',
     start_time: '',
     end_time: '',
@@ -66,7 +67,7 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
   };
 
   const resetAndClose = () => {
-    setInviteData({ event_title: '', visit_date: '', start_time: '', end_time: '', note: '' });
+    setInviteData({ event_title: '', visit_type: 'Meeting', visit_date: '', start_time: '', end_time: '', note: '' });
     setVisitors([{ visitor_name: '', visitor_email: '', company: '' }]);
     setGeneratedQRs(null);
     setError('');
@@ -112,9 +113,24 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
               <div className="space-y-4">
                 <h3 className="font-semibold text-zinc-900 border-b border-zinc-100 pb-2">Event Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2">
                     <Label htmlFor="event_title">Meeting / Event Title</Label>
                     <Input id="event_title" required value={inviteData.event_title} onChange={handleInviteChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="visit_type">Visit Type</Label>
+                    <select 
+                      id="visit_type" 
+                      value={inviteData.visit_type} 
+                      onChange={handleInviteChange}
+                      className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 md:text-sm"
+                      required
+                    >
+                      <option value="Meeting">Meeting</option>
+                      <option value="Interview">Interview</option>
+                      <option value="Maintenance">Maintenance</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="visit_date">Date</Label>

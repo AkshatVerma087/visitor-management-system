@@ -30,7 +30,9 @@ export default function Dashboard() {
           <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center shadow-sm">
             <Building2 className="w-5 h-5 text-white" />
           </div>
-          <span className="font-semibold text-zinc-900 tracking-tight text-lg">VMS</span>
+          <span className="font-semibold text-zinc-900 tracking-tight text-lg">
+            {user?.role === 'Security' ? 'Front Desk' : 'VMS'}
+          </span>
         </div>
         
         <div className="flex items-center space-x-6">
