@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Plus, X, Clock, CheckCircle2, AlertCircle, ChevronDown } from 'lucide-react';
+import { Search, Plus, X, Clock, CheckCircle2, AlertCircle, ChevronDown, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { visitors } from '../../api';
 import { getSocket } from '../../api/socket';
 
@@ -97,8 +98,9 @@ export default function SecurityDashboard() {
       if (selectedVisitor?.id === visitId) {
         setSelectedVisitor({ ...selectedVisitor, status: data.status });
       }
+      toast.success('Successfully checked out visitor');
     } catch (err) {
-      alert(`Error checking out: ${err.message}`);
+      toast.error(`Error checking out: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -113,8 +115,9 @@ export default function SecurityDashboard() {
       if (selectedVisitor?.id === visitId) {
         setSelectedVisitor({ ...selectedVisitor, status: data.status });
       }
+      toast.success('Successfully checked in visitor');
     } catch (err) {
-      alert(`Error checking in: ${err.message}`);
+      toast.error(`Error checking in: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -153,7 +156,12 @@ export default function SecurityDashboard() {
 
   const tabs = ['All visitors', 'Pending', 'Active', 'Pre-approved'];
 
-  if (loading) return <div className="p-8 text-center text-zinc-500">Loading dashboard...</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-full text-zinc-500">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+      <p>Loading dashboard...</p>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full bg-white font-sans text-sm">
@@ -204,14 +212,6 @@ export default function SecurityDashboard() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm" className="h-9 border-zinc-200 text-zinc-700">
-            <Filter className="w-4 h-4 mr-2" /> Filter
-          </Button>
-          <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" /> Register visitor
-          </Button>
         </div>
       </div>
 
@@ -361,15 +361,6 @@ export default function SecurityDashboard() {
                 </ul>
               </div>
 
-              {/* Additional Information */}
-              <div>
-                <label className="block text-xs font-medium text-zinc-700 mb-2">Additional Information</label>
-                <textarea 
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-sm min-h-[100px] resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Input text"
-                ></textarea>
-                <p className="text-right text-[10px] text-zinc-400 mt-1">0/1000</p>
-              </div>
             </div>
 
             {/* Panel Footer */}

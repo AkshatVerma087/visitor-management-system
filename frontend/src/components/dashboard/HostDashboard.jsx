@@ -1,23 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../../context/AuthContext';
-import { visitors } from '../../api';
+import { visitors, invites as invitesApi } from '../../api';
 import { getSocket } from '../../api/socket';
-import { Check, X, Clock, CalendarDays, User, Plus } from 'lucide-react';
+import { Check, X, Clock, CalendarDays, User, Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import InviteVisitorModal from './InviteVisitorModal';
 
 export default function HostDashboard() {
   const { user, token } = useAuth();
   const [visits, setVisits] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   // Fetch the current host's assigned visits from the API
-  const fetchVisits = async () => {
+  const fetchVisitsAndInvites = async () => {
     try {
-      const data = await visitors.getHostVisits();
-      setVisits(data);
+      const [visitsData, invitesData] = await Promise.all([
+        visitors.getHostVisits(),
+        invitesApi.getInvites()
+      ]);
+      setVisits(visitsData);
+      setInvites(invitesData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -27,7 +33,7 @@ export default function HostDashboard() {
 
   useEffect(() => {
     // Initial fetch of visits on component mount
-    fetchVisits();
+    fetchVisitsAndInvites();
 
     // Connect to Socket.io for real-time updates (same pattern as SecurityDashboard)
     const socket = getSocket();
@@ -67,12 +73,18 @@ export default function HostDashboard() {
       setVisits(prev => prev.map(v => 
         v.id === visitId ? { ...v, status: data.status } : v
       ));
+      toast.success(`Visitor ${decision.toLowerCase()} successfully`);
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      toast.error(`Error: ${err.message}`);
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-zinc-500">Loading your visits...</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-zinc-500">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+      <p>Loading your visits...</p>
+    </div>
+  );
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   const pendingVisits = visits.filter(v => v.status === 'Pending');
@@ -95,7 +107,7 @@ export default function HostDashboard() {
       <InviteVisitorModal 
         isOpen={isInviteModalOpen} 
         onClose={() => setIsInviteModalOpen(false)} 
-        onSuccess={() => fetchVisits()}
+        onSuccess={() => fetchVisitsAndInvites()}
       />
 
       {/* Action required section */}
@@ -160,33 +172,37 @@ export default function HostDashboard() {
         )}
       </div>
 
-      {/* History section */}
+      {/* History section (Invites) */}
       <div>
         <h2 className="text-lg font-semibold text-zinc-900 mb-4 flex items-center">
           <CalendarDays className="w-5 h-5 mr-2 text-zinc-400" />
-          Recent Activity
+          My Scheduled Invites
         </h2>
         <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
-          {pastVisits.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500">No recent activity.</div>
+          {invites.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500">No scheduled invites found.</div>
           ) : (
             <div className="divide-y divide-zinc-100">
-              {pastVisits.slice(0, 10).map(visit => (
-                <div key={visit.id} className="p-4 flex items-center justify-between hover:bg-zinc-50 transition-colors">
-                  <div>
-                    <p className="font-medium text-zinc-900">{visit.visitor_name}</p>
-                    <p className="text-sm text-zinc-500">{new Date(visit.expected_arrival).toLocaleString()}</p>
+              {invites.map(invite => (
+                <div key={invite.id} className="p-4 flex flex-col hover:bg-zinc-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-zinc-900 text-base">{invite.event_title}</p>
+                      <p className="text-sm text-zinc-500">
+                        {new Date(invite.visit_date).toLocaleDateString()} • {new Date(invite.start_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {new Date(invite.end_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {invite.visits?.length || 0} Visitors
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      visit.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                      visit.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                      visit.status === 'Expired' ? 'bg-orange-100 text-orange-800' :
-                      'bg-zinc-100 text-zinc-800'
-                    }`}>
-                      {visit.status}
-                    </span>
-                  </div>
+                  {invite.visits && invite.visits.length > 0 && (
+                    <div className="mt-3 text-sm text-zinc-600">
+                      <span className="font-medium">Guests:</span> {invite.visits.map(v => v.visitor_name).join(', ')}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

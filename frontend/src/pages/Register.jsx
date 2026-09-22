@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { auth as authApi } from '../api';
+import { auth as authApi, offices } from '../api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,13 +14,22 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
-    role: 'Host', // default role
     office_id: ''
   });
+  const [availableOffices, setAvailableOffices] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    offices.getOffices()
+      .then(data => {
+        setAvailableOffices(data);
+        if (data.length > 0) setFormData(prev => ({ ...prev, office_id: data[0].id }));
+      })
+      .catch(err => console.error('Failed to fetch offices:', err));
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -32,8 +41,8 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const { name, email, password, role } = formData;
-      const registerData = await authApi.register({ name, email, password, role });
+      const { name, email, password, office_id } = formData;
+      const registerData = await authApi.register({ name, email, password, office_id });
       
       // Immediately log them in
       const loginData = await authApi.login({ email, password });
@@ -97,25 +106,19 @@ export default function Register() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <select 
-                  id="role" 
-                  value={formData.role} 
-                  onChange={handleChange} 
-                  className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                  required
-                >
-                  <option value="Host">Host</option>
-                  <option value="Security">Security</option>
-                  <option value="Admin">Admin</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="office_id">Office ID</Label>
-                <Input id="office_id" placeholder="UUID string" value={formData.office_id} onChange={handleChange} required />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="office_id">Office</Label>
+              <select 
+                id="office_id" 
+                value={formData.office_id} 
+                onChange={handleChange} 
+                className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                required
+              >
+                {availableOffices.map(o => (
+                  <option key={o.id} value={o.id}>{o.name} - {o.location}</option>
+                ))}
+              </select>
             </div>
 
           </CardContent>

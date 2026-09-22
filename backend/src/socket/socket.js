@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 /**
  * SOCKET.IO INITIALIZATION & ROOM MANAGEMENT
@@ -31,8 +32,22 @@ function initSocket(httpServer) {
     }
   });
 
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error('Authentication error'));
+    }
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.user = decoded;
+      next();
+    } catch (err) {
+      next(new Error('Authentication error'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    console.log(`🔌 New client connected: ${socket.id}`);
+    console.log(`🔌 New client connected: ${socket.id} (User: ${socket.user.id})`);
 
     // Allow front desk clients to join their specific office's room for today's visits
     socket.on('join:office', ({ officeId, date }) => {

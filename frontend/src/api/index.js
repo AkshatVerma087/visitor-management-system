@@ -20,8 +20,13 @@ export const employees = {
   getHosts: () => apiClient('/employees/hosts'),
 };
 
+export const offices = {
+  getOffices: () => apiClient('/employees/offices'),
+};
+
 export const invites = {
   create: (data) => apiClient('/invites', { method: 'POST', body: JSON.stringify(data) }),
+  getInvites: () => apiClient('/invites'),
 };
 
 export const admin = {

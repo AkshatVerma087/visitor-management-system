@@ -1,11 +1,16 @@
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '../config';
+import { getAccessToken } from './client';
 
 let socketInstance = null;
 
 export const getSocket = () => {
   if (!socketInstance) {
-    socketInstance = io(SOCKET_URL, { withCredentials: true });
+    const token = getAccessToken();
+    socketInstance = io(SOCKET_URL, { 
+      withCredentials: true,
+      auth: { token }
+    });
   }
   return socketInstance;
 };

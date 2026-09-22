@@ -36,34 +36,41 @@ exports.createInvite = async (hostId, data) => {
   const startTimeObj = new Date(`${visit_date.split('T')[0]}T${start_time}`);
   const endTimeObj = new Date(`${visit_date.split('T')[0]}T${end_time}`);
 
+  let invite;
   // 2. Create Invite and associated Visits in a transaction
-  const invite = await prisma.invite.create({
-    data: {
-      event_title,
-      visit_type: visit_type || 'Meeting',
-      visit_date: visitDateObj,
-      start_time: startTimeObj,
-      end_time: endTimeObj,
-      host_id: hostId,
-      office_id: host.office_id,
-      note,
-      // Create Visit records automatically with 'Approved' status
-      visits: {
-        create: visitors.map(v => ({
-          visitor_name: v.visitor_name,
-          visitor_email: v.visitor_email,
-          company: v.company,
-          status: 'Approved', // Pre-approved!
-          host_id: hostId,
-          office_id: host.office_id,
-          expected_arrival: startTimeObj
-        }))
+  try {
+    invite = await prisma.invite.create({
+      data: {
+        event_title,
+        visit_type: visit_type || 'Meeting',
+        visit_date: visitDateObj,
+        start_time: startTimeObj,
+        end_time: endTimeObj,
+        host_id: hostId,
+        office_id: host.office_id,
+        note,
+        // Create Visit records automatically with 'Approved' status
+        visits: {
+          create: visitors.map(v => ({
+            visitor_name: v.visitor_name,
+            visitor_email: v.visitor_email,
+            company: v.company,
+            status: 'Approved', // Pre-approved!
+            host_id: hostId,
+            office_id: host.office_id,
+            expected_arrival: startTimeObj
+          }))
+        }
+      },
+      include: {
+        visits: true
       }
-    },
-    include: {
-      visits: true
-    }
-  });
+    });
+  } catch (err) {
+    // If DB write fails, refund the quota in Redis
+    await redis.decr(redisKey);
+    throw new Error('Failed to create invite, please try again.');
+  }
 
   // Emit websocket events for the newly created pre-approved visits
   try {

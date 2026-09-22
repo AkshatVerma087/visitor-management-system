@@ -1,17 +1,9 @@
 const prisma = require('../../lib/prisma');
-const { getIo } = require('../../socket/socket');
+const { emitVisitUpdate } = require('../../socket/socket.utils');
 const QRCode = require('qrcode');
+const fs = require('fs');
+const path = require('path');
 const { sendHostNotification, sendApprovalQr } = require('../../lib/mailer');
-
-const emitVisitUpdate = (visit) => {
-  try {
-    const dateStr = visit.expected_arrival.toISOString().split('T')[0];
-    const room = `office:${visit.office_id}:${dateStr}`;
-    getIo().to(room).emit('visit:updated', visit);
-  } catch (err) {
-    console.error('Failed to emit visit:updated event', err);
-  }
-};
 
 exports.registerWalkIn = async (data) => {
   // Extract visitor and host details from the incoming data
@@ -20,6 +12,20 @@ exports.registerWalkIn = async (data) => {
   // Validate that essential fields are provided
   if (!visitor_name || !visitor_email || !host_id) {
     throw new Error('Missing required fields: visitor_name, visitor_email, host_id');
+  }
+
+  // Handle Base64 photo upload
+  let savedPhotoUrl = photo_url;
+  if (photo_url && photo_url.startsWith('data:image')) {
+    try {
+      const base64Data = photo_url.replace(/^data:image\/\w+;base64,/, "");
+      const fileName = `visitor_${Date.now()}_${Math.round(Math.random()*1E9)}.jpg`;
+      const uploadPath = path.join(__dirname, '../../..', 'public', 'uploads', fileName);
+      fs.writeFileSync(uploadPath, base64Data, 'base64');
+      savedPhotoUrl = `/uploads/${fileName}`;
+    } catch (err) {
+      console.error('Failed to save photo:', err);
+    }
   }
 
   // Find host to get office_id
@@ -39,7 +45,7 @@ exports.registerWalkIn = async (data) => {
       visitor_phone,
       company,
       purpose,
-      photo_url,
+      photo_url: savedPhotoUrl,
       host_id,
       office_id: host.office_id,
       status: 'Pending',
@@ -58,11 +64,13 @@ exports.registerWalkIn = async (data) => {
   return updatedVisit;
 };
 
-exports.getVisitsForHost = async (hostId) => {
+exports.getVisitsForHost = async (hostId, skip = 0, take = 50) => {
   // Query all visits assigned to the specific host, ordered by most recent
   return await prisma.visit.findMany({
     where: { host_id: hostId },
-    orderBy: { created_at: 'desc' }
+    orderBy: { created_at: 'desc' },
+    skip: Number(skip),
+    take: Number(take)
   });
 };
 
@@ -203,7 +211,7 @@ exports.checkOut = async (visitId, securityId) => {
   return updatedVisit;
 };
 
-exports.getTodayVisitors = async (officeId) => {
+exports.getTodayVisitors = async (officeId, skip = 0, take = 50) => {
   // We define "today" as from 00:00:00 to 23:59:59 local time.
   // For simplicity in this demo, we'll just fetch anything that is roughly today using expected_arrival bounds
   const today = new Date();
@@ -222,6 +230,8 @@ exports.getTodayVisitors = async (officeId) => {
     include: {
       host: { select: { name: true, email: true } }
     },
-    orderBy: { expected_arrival: 'asc' }
+    orderBy: { expected_arrival: 'asc' },
+    skip: Number(skip),
+    take: Number(take)
   });
 };

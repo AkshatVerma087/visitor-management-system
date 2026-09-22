@@ -1,10 +1,9 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const prisma = require('../../lib/prisma');
 
 async function registerEmployee(data) {
-  // Extract user details from the payload
-  const { name, email, password, department, role, office_id } = data;
+  // Extract user details from the payload (ignore role)
+  const { name, email, password, department, office_id } = data;
 
   // Validate presence of essential fields
   if (!name || !email || !password || !office_id) {
@@ -26,7 +25,7 @@ async function registerEmployee(data) {
       email,
       password: hashedPassword,
       department,
-      role: role || 'Host',
+      role: 'Host',
       office_id
     },
     select: {
@@ -61,23 +60,7 @@ async function loginEmployee(email, password) {
     throw new Error('Invalid credentials');
   }
 
-  // Generate a JWT token containing the user's ID
-  const token = jwt.sign(
-    { id: employee.id, role: employee.role, office_id: employee.office_id },
-    process.env.JWT_SECRET,
-    { expiresIn: '1d' }
-  );
-
-  return {
-    token,
-    user: {
-      id: employee.id,
-      name: employee.name,
-      email: employee.email,
-      role: employee.role,
-      office_id: employee.office_id
-    }
-  };
+  return employee;
 }
 
 module.exports = {

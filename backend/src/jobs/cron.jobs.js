@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const prisma = require('../lib/prisma');
+const { emitVisitUpdate } = require('../socket/socket.utils');
 const { getIo } = require('../socket/socket');
 
 /**
@@ -9,17 +10,6 @@ const { getIo } = require('../socket/socket');
  * 1. Overstay Detection: Flags visitors who have been checked in for > 8 hours.
  * 2. Auto-Expire: Invalidates pre-approved visits that were never used on their scheduled date.
  */
-
-// Helper to emit websocket events to the specific office room
-const emitVisitUpdate = (visit) => {
-  try {
-    const dateStr = visit.expected_arrival.toISOString().split('T')[0];
-    const room = `office:${visit.office_id}:${dateStr}`;
-    getIo().to(room).emit('visit:updated', visit);
-  } catch (err) {
-    console.error('Failed to emit visit:updated event from cron job', err);
-  }
-};
 
 const startCronJobs = () => {
   console.log('🕒 Initializing background security jobs...');
