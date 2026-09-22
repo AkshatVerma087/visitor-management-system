@@ -4,10 +4,10 @@ Complete reference for the Visitor Management System: what it is, how services c
 
 **Related documents**
 
-- [Complexity Analysis](./doc/COMPLEXITY_ANALYSIS.md) — time/space complexity, scalability, performance, error handling
-- [Decisions Log](./doc/decisions.md) — why we chose this stack and these patterns
+- [Complexity Analysis](./COMPLEXITY_ANALYSIS.md) — time/space complexity, scalability, performance, error handling
+- [Decisions Log](./decisions.md) — why we chose this stack and these patterns
 - [README](./README.md) — how to install and run the project
-- [Case Study Analysis](./doc/CASE_STUDY_1_VMS_FULL_ANALYSIS.md) — requirement coverage vs LPU Case Study #1
+- [Case Study Analysis](./CASE_STUDY_1_VMS_FULL_ANALYSIS.md) — requirement coverage vs LPU Case Study #1
 
 ---
 
@@ -460,9 +460,9 @@ Frontend port for the API is set in `vms/frontend/src/config.js` (`PORT = 4000`)
 - Invite time-window enforcement on check-in
 - Structured errors that avoid leaking stack traces in production responses
 
-Details and asymptotic cost of these paths are in **[Complexity Analysis](./doc/COMPLEXITY_ANALYSIS.md)**.
+Details and asymptotic cost of these paths are in **[Complexity Analysis](./COMPLEXITY_ANALYSIS.md)**.
 
-Rationale for Redis quotas, Socket.io rooms, Resend, and photo-on-disk is in **[Decisions Log](./doc/decisions.md)**.
+Rationale for Redis quotas, Socket.io rooms, Resend, and photo-on-disk is in **[Decisions Log](./decisions.md)**.
 
 ---
 
@@ -484,6 +484,6 @@ Additional host accounts may also be seeded (see `prisma/seed.js`).
 
 1. Run the stack using [README](./README.md).
 2. Skim this overview for service wiring and workflows.
-3. Read [decisions.md](./doc/decisions.md) for why the architecture looks this way.
-4. Read [COMPLEXITY_ANALYSIS.md](./doc/COMPLEXITY_ANALYSIS.md) for performance and grading-oriented analysis.
-5. Use [CASE_STUDY_1_VMS_FULL_ANALYSIS.md](./doc/CASE_STUDY_1_VMS_FULL_ANALYSIS.md) when mapping features back to the assignment PDF.
+3. Read [decisions.md](./decisions.md) for why the architecture looks this way.
+4. Read [COMPLEXITY_ANALYSIS.md](./COMPLEXITY_ANALYSIS.md) for performance and grading-oriented analysis.
+5. Use [CASE_STUDY_1_VMS_FULL_ANALYSIS.md](./CASE_STUDY_1_VMS_FULL_ANALYSIS.md) when mapping features back to the assignment PDF.

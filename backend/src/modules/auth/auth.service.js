@@ -2,8 +2,8 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../../lib/prisma');
 
 async function registerEmployee(data) {
-  // Extract user details from the payload (ignore role)
-  const { name, email, password, department, office_id } = data;
+  // Extract user details from the payload
+  const { name, email, password, department, office_id, role } = data;
 
   // Validate presence of essential fields
   if (!name || !email || !password || !office_id) {
@@ -25,7 +25,7 @@ async function registerEmployee(data) {
       email,
       password: hashedPassword,
       department,
-      role: 'Host',
+      role: role || 'Host',
       office_id
     },
     select: {
