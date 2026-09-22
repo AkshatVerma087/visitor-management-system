@@ -40,7 +40,7 @@ const StatusBadge = ({ status }) => {
 
 export default function SecurityDashboard() {
   const { user, token } = useAuth();
-  const [visitors, setVisitors] = useState([]);
+  const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -69,24 +69,32 @@ export default function SecurityDashboard() {
     const socket = getSocket();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    socket.on('connect', () => {
+    const handleConnect = () => {
       socket.emit('join:office', { officeId: user.office_id, date: todayStr });
-    });
+    };
 
-    socket.on('visit:updated', (updatedVisit) => {
+    if (socket.connected) {
+      handleConnect();
+    }
+    socket.on('connect', handleConnect);
+
+    const handleVisitUpdated = (updatedVisit) => {
       setVisits(prev => {
         const exists = prev.find(v => v.id === updatedVisit.id);
         if (exists) {
-          // Update selected visitor if they are currently open
           setSelectedVisitor(curr => curr?.id === updatedVisit.id ? updatedVisit : curr);
           return prev.map(v => v.id === updatedVisit.id ? updatedVisit : v);
         } else {
-          return [...prev, updatedVisit].sort((a, b) => new Date(a.expected_arrival) - new Date(b.expected_arrival));
+          return [...prev, updatedVisit].sort((a, b) => new Date(b.expected_arrival) - new Date(a.expected_arrival));
         }
       });
-    });
+    };
+    socket.on('visit:updated', handleVisitUpdated);
 
-    return () => socket.disconnect();
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('visit:updated', handleVisitUpdated);
+    };
   }, [fetchTodayVisitors, user.office_id]);
 
   const handleCheckout = async (visitId) => {
@@ -127,15 +135,15 @@ export default function SecurityDashboard() {
   // Stats calculation
   const stats = useMemo(() => {
     return {
-      pending: visitors.filter(v => v.status === 'Pending').length,
-      active: visitors.filter(v => v.status === 'CheckedIn').length,
-      total: visitors.length
+      pending: visits.filter(v => v.status === 'Pending').length,
+      active: visits.filter(v => v.status === 'CheckedIn').length,
+      total: visits.length
     };
-  }, [visitors]);
+  }, [visits]);
 
   // Filtering
   const filteredVisitors = useMemo(() => {
-    let filtered = visitors;
+    let filtered = visits;
     
     // Tab filter
     if (activeTab === 'Pending') filtered = filtered.filter(v => v.status === 'Pending');
@@ -152,8 +160,11 @@ export default function SecurityDashboard() {
       );
     }
     
+    // Sort descending (newest first)
+    filtered.sort((a, b) => new Date(b.expected_arrival) - new Date(a.expected_arrival));
+    
     return filtered;
-  }, [visitors, activeTab, searchQuery]);
+  }, [visits, activeTab, searchQuery]);
 
   const tabs = ['All visitors', 'Pending', 'Active', 'Pre-approved'];
 
@@ -253,13 +264,21 @@ export default function SecurityDashboard() {
                       </td>
                       <td className="px-6 py-4 text-zinc-700">{v.host?.name || 'N/A'}</td>
                       <td className="px-6 py-4">
-                        <span className="font-medium text-zinc-700">{v.purpose || 'Meeting'}</span>
+                        <span className="font-medium text-zinc-700">{v.invite ? v.invite.event_title : (v.purpose || 'Meeting')}</span>
                       </td>
                       <td className="px-6 py-4 text-zinc-500">
-                        {v.check_in_time 
-                          ? new Date(v.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : new Date(v.expected_arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        }
+                        <div className="text-zinc-900 font-medium">
+                          {v.check_in_time 
+                            ? new Date(v.check_in_time).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                            : new Date(v.expected_arrival).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                          }
+                        </div>
+                        <div className="text-xs">
+                          {v.check_in_time 
+                            ? new Date(v.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : new Date(v.expected_arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          }
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={v.status} />
@@ -336,11 +355,25 @@ export default function SecurityDashboard() {
                       : '--'}
                   </p>
                 </div>
+                <div className="relative">
+                  <div className="absolute -left-[21px] w-2.5 h-2.5 rounded-full ring-4 ring-white bg-zinc-200"></div>
+                  <p className="font-medium text-zinc-600 text-sm leading-none mb-1">Expected End Time</p>
+                  <p className="text-xs text-zinc-400">
+                    {selectedVisitor.expected_end_time 
+                      ? new Date(selectedVisitor.expected_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '--'}
+                  </p>
+                </div>
               </div>
 
               {/* Visit Info */}
               <div className="mb-6">
-                <h4 className="font-semibold text-zinc-900 mb-1">{selectedVisitor.purpose || 'Walk In Visitor'}</h4>
+                <h4 className="font-semibold text-zinc-900 mb-1">
+                  {selectedVisitor.invite ? `Invite: ${selectedVisitor.invite.event_title}` : (selectedVisitor.purpose || 'Walk In Visitor')}
+                </h4>
+                {selectedVisitor.invite && (
+                  <p className="text-xs text-blue-600 font-medium mb-1">{selectedVisitor.invite.visit_type}</p>
+                )}
                 <p className="text-xs text-zinc-500 mb-2">
                   {new Date(selectedVisitor.expected_arrival).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -369,16 +402,16 @@ export default function SecurityDashboard() {
               {selectedVisitor.status === 'CheckedIn' ? (
                 <Button 
                   className="w-full bg-[#0a235c] hover:bg-blue-900 text-white rounded-lg"
-                  onClick={() => handleManualCheckout(selectedVisitor.id)}
-                  disabled={isProcessing}
+                  onClick={() => handleCheckout(selectedVisitor.id)}
+                  isLoading={isProcessing}
                 >
                   Check-Out
                 </Button>
               ) : selectedVisitor.status === 'Approved' ? (
                 <Button 
                   className="w-full bg-green-600 hover:bg-green-700 text-white rounded-lg"
-                  onClick={() => handleManualCheckIn(selectedVisitor.id)}
-                  disabled={isProcessing}
+                  onClick={() => handleCheckin(selectedVisitor.id)}
+                  isLoading={isProcessing}
                 >
                   Check-In Visitor
                 </Button>
