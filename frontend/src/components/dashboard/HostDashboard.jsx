@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '../../context/AuthContext';
 import { visitors, invites as invitesApi } from '../../api';
 import { getSocket } from '../../api/socket';
+import { getImageUrl } from '../../config';
 import { Check, X, Clock, CalendarDays, User, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import InviteVisitorModal from './InviteVisitorModal';
@@ -68,7 +69,8 @@ export default function HostDashboard() {
   // Handle the action of approving or rejecting a specific visit
   const handleDecision = async (visitId, decision) => {
     try {
-      const data = await visitors.decision(visitId, decision);
+      const idempotency_key = crypto.randomUUID(); // Generate unique key for idempotency
+      const data = await visitors.decision(visitId, { decision, idempotency_key });
       
       setVisits(prev => prev.map(v => 
         v.id === visitId ? { ...v, status: data.status } : v
@@ -133,7 +135,7 @@ export default function HostDashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center space-x-4">
                     {visit.photo_url ? (
-                      <img src={visit.photo_url} alt="Visitor" className="w-12 h-12 rounded-full object-cover shadow-sm border border-zinc-200" />
+                      <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-12 h-12 rounded-full object-cover shadow-sm border border-zinc-200" />
                     ) : (
                       <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center border border-zinc-200">
                         <User className="w-6 h-6 text-zinc-400" />

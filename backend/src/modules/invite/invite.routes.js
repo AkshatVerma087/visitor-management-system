@@ -1,7 +1,7 @@
 const express = require('express');
 const inviteController = require('./invite.controller');
-const protect = require('../../middleware/auth.middleware');
-const restrictTo = require('../../middleware/role.middleware');
+const { protect } = require('../../middleware/auth.middleware');
+const { restrictTo } = require('../../middleware/role.middleware');
 const validate = require('../../middleware/validate');
 const { createInviteSchema } = require('../../validations/invite.schema');
 

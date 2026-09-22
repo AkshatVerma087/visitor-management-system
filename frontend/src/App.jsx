@@ -8,8 +8,9 @@ import Dashboard from './pages/Dashboard';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
-  const { token } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
+  const { user, loading } = useAuth();
+  if (loading) return null; // Or a loading spinner
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 };
 

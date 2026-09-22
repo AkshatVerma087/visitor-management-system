@@ -51,7 +51,32 @@ async function main() {
     }
   });
 
-  // 5. Seed Security
+  // 5. Seed More Hosts
+  const host2 = await prisma.employee.upsert({
+    where: { email: 'john.host@office.com' },
+    update: {},
+    create: {
+      name: 'John Host',
+      email: 'john.host@office.com',
+      password: hashedPassword,
+      role: 'Host',
+      office_id: office.id
+    }
+  });
+
+  const host3 = await prisma.employee.upsert({
+    where: { email: 'sarah.host@office.com' },
+    update: {},
+    create: {
+      name: 'Sarah Host',
+      email: 'sarah.host@office.com',
+      password: hashedPassword,
+      role: 'Host',
+      office_id: office.id
+    }
+  });
+
+  // 6. Seed Security
   const security = await prisma.employee.upsert({
     where: { email: 'security@office.com' },
     update: {},
@@ -66,7 +91,9 @@ async function main() {
 
   console.log('--- Seed Data Created ---');
   console.log(`Admin: ${admin.email}`);
-  console.log(`Host: ${host.email}`);
+  console.log(`Host 1: ${host.email}`);
+  console.log(`Host 2: ${host2.email}`);
+  console.log(`Host 3: ${host3.email}`);
   console.log(`Security: ${security.email}`);
   console.log(`Password for all: ${defaultPassword}`);
 }

@@ -26,7 +26,7 @@ export default function Login() {
       const data = await authApi.login({ email, password });
       
       // Save session and redirect
-      login(data.user, data.token);
+      login(data.token, data.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

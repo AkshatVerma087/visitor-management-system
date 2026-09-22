@@ -23,6 +23,7 @@ const startCronJobs = () => {
       // 1. OVERSTAY DETECTION (8+ hours checked in)
       // ==========================================
       const eightHoursAgo = new Date(now.getTime() - (8 * 60 * 60 * 1000));
+      const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
       
       const overstayViolators = await prisma.visit.findMany({
         where: {

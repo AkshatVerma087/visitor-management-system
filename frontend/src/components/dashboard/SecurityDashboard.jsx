@@ -6,6 +6,7 @@ import { Search, Plus, X, Clock, CheckCircle2, AlertCircle, ChevronDown, Loader2
 import { toast } from 'sonner';
 import { visitors } from '../../api';
 import { getSocket } from '../../api/socket';
+import { getImageUrl } from '../../config';
 
 // Helper component for status badges
 const StatusBadge = ({ status }) => {
@@ -296,7 +297,7 @@ export default function SecurityDashboard() {
                 
                 <div className="text-center z-10 bg-white px-2">
                   {selectedVisitor.photo_url ? (
-                    <img src={selectedVisitor.photo_url} alt="Visitor" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm mx-auto mb-2" />
+                    <img src={getImageUrl(selectedVisitor.photo_url)} alt="Visitor" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm mx-auto mb-2" />
                   ) : (
                     <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-lg mx-auto mb-2 shadow-sm border-2 border-white">
                       {selectedVisitor.visitor_name.charAt(0)}

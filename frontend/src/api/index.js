@@ -13,7 +13,7 @@ export const visitors = {
   checkIn: (id) => apiClient(`/visitors/${id}/checkin`, { method: 'POST' }),
   qrCheckIn: (id) => apiClient(`/visitors/${id}/qr-checkin`, { method: 'POST' }),
   checkOut: (id) => apiClient(`/visitors/${id}/checkout`, { method: 'POST' }),
-  decision: (id, decision) => apiClient(`/visitors/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision }) }),
+  decision: (id, data) => apiClient(`/visitors/${id}/decision`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export const employees = {

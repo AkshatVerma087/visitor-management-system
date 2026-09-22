@@ -13,5 +13,6 @@ exports.walkInSchema = z.object({
 exports.decisionSchema = z.object({
   decision: z.enum(['Approved', 'Rejected'], {
     errorMap: () => ({ message: "Decision must be 'Approved' or 'Rejected'" })
-  })
+  }),
+  idempotency_key: z.string().min(1, 'Invalid request parameters')
 });

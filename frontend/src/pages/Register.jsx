@@ -47,7 +47,7 @@ export default function Register() {
       // Immediately log them in
       const loginData = await authApi.login({ email, password });
       
-      login(loginData.user, loginData.token);
+      login(loginData.token, loginData.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
