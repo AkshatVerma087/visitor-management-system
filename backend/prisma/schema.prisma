@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Admin
+  Host
+  Security
+}
+
+enum VisitStatus {
+  Pending
+  Approved
+  Rejected
+  CheckedIn
+  CheckedOut
+  Overstay
+}
+
+enum VisitDecision {
+  Approved
+  Rejected
+}
+
+model Office {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  address   String
+  employees Employee[]
+  visits    Visit[]
+  invites   Invite[]
+}
+
+model Employee {
+  id         String     @id @default(uuid()) @db.Uuid
+  name       String
+  email      String     @unique
+  password   String
+  department String?
+  role       Role       @default(Host)
+  office_id  String     @db.Uuid
+  office     Office     @relation(fields: [office_id], references: [id])
+  visits     Visit[]
+  invites    Invite[]
+  approvals  Approval[]
+}
+
+model Invite {
+  id          String   @id @default(uuid()) @db.Uuid
+  event_title String
+  visit_type  String
+  visit_date  DateTime @db.Date
+  start_time  DateTime @db.Time
+  end_time    DateTime @db.Time
+  host_id     String   @db.Uuid
+  host        Employee @relation(fields: [host_id], references: [id])
+  office_id   String   @db.Uuid
+  office      Office   @relation(fields: [office_id], references: [id])
+  note        String?
+  visits      Visit[]
+
+  @@index([host_id, visit_date])
+}
+
+model Visit {
+  id               String      @id @default(uuid()) @db.Uuid
+  visitor_name     String
+  visitor_email    String
+  visitor_phone    String?
+  company          String?
+  purpose          String?
+  photo_url        String?
+  host_id          String      @db.Uuid
+  host             Employee    @relation(fields: [host_id], references: [id])
+  office_id        String      @db.Uuid
+  office           Office      @relation(fields: [office_id], references: [id])
+  invite_id        String?     @db.Uuid
+  invite           Invite?     @relation(fields: [invite_id], references: [id])
+  status           VisitStatus @default(Pending)
+  expected_arrival DateTime
+  check_in_time    DateTime?
+  check_out_time   DateTime?
+  checked_out_by   String?
+  created_at       DateTime    @default(now())
+  approvals        Approval[]
+
+  @@index([office_id, expected_arrival, status])
+  @@index([visitor_email])
+  @@index([visitor_phone])
+}
+
+model Approval {
+  id              String        @id @default(uuid()) @db.Uuid
+  visit_id        String        @db.Uuid
+  visit           Visit         @relation(fields: [visit_id], references: [id])
+  decision        VisitDecision
+  decided_by      String        @db.Uuid
+  decider         Employee      @relation(fields: [decided_by], references: [id])
+  decided_at      DateTime      @default(now())
+  idempotency_key String        @unique
+}
