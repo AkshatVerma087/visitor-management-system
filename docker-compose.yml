@@ -1,0 +1,53 @@
+# Docker Compose for VMS
+# Spins up: PostgreSQL, Redis, Backend API, Frontend
+
+services:
+  # ---- PostgreSQL Database ----
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vms_user
+      POSTGRES_PASSWORD: vms_password
+      POSTGRES_DB: vms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # ---- Redis (for invite quotas) ----
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  # ---- Backend API ----
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://vms_user:vms_password@postgres:5432/vms_db
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: super-secret-refresh-key-change-in-production
+      PORT: 4000
+      FRONTEND_URL: http://localhost:3000
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+
+  # ---- Frontend ----
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
