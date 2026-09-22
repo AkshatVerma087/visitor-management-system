@@ -2,6 +2,7 @@ const prisma = require('../../lib/prisma');
 const redis = require('../../lib/redis');
 const QRCode = require('qrcode');
 const { getIo } = require('../../socket/socket');
+const { sendVisitorQrPass } = require('../../lib/mailer');
 
 exports.createInvite = async (hostId, data) => {
   const { event_title, visit_type, visit_date, start_time, end_time, note, visitors } = data;
@@ -75,10 +76,22 @@ exports.createInvite = async (hostId, data) => {
     console.error('Failed to emit socket event', err);
   }
 
-  // 3. Generate QR codes for each visitor (simulated email)
+  // 3. Generate QR codes for each visitor and email them
   const visitsWithQr = await Promise.all(invite.visits.map(async (visit) => {
     // Generate base64 QR code image from the Visit ID
     const qrCodeDataUrl = await QRCode.toDataURL(visit.id);
+
+    // Email the QR e-pass to the visitor (async, non-blocking)
+    sendVisitorQrPass(
+      visit.visitor_email,
+      visit.visitor_name,
+      qrCodeDataUrl,
+      event_title,
+      dateStr,
+      start_time,
+      end_time
+    );
+
     return {
       ...visit,
       qr_code: qrCodeDataUrl

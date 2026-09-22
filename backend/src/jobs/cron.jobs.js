@@ -60,26 +60,51 @@ const startCronJobs = () => {
       // ==========================================
       // 2. AUTO-EXPIRE STALE PRE-APPROVALS
       // ==========================================
-      // If a visitor was approved but never checked in, and 24 hours have passed since their expected arrival, expire it.
-      const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-
+      // Find Approved visits that have a parent invite whose end_time has passed,
+      // OR Approved visits without an invite that are older than 24 hours.
       const expiredVisits = await prisma.visit.findMany({
         where: {
           status: 'Approved',
-          expected_arrival: {
-            lt: yesterday
-          }
+          OR: [
+            // Pre-approved visits: check if the invite's end_time (on the visit_date) has passed
+            {
+              invite_id: { not: null },
+              invite: {
+                // The visit_date + end_time combination is in the past
+                visit_date: { lte: now }
+              }
+            },
+            // Walk-in approved visits without an invite: expire after 24h
+            {
+              invite_id: null,
+              expected_arrival: { lt: yesterday }
+            }
+          ]
         },
-        include: { host: { select: { name: true, email: true } } }
+        include: {
+          host: { select: { name: true, email: true } },
+          invite: true // Load invite to do a precise end_time check
+        }
       });
 
-      if (expiredVisits.length > 0) {
-        console.log(`🗑️ Expiring ${expiredVisits.length} unused visitor passes.`);
+      // Filter invite-based visits more precisely using the end_time
+      const trulyExpired = expiredVisits.filter(visit => {
+        if (!visit.invite) return true; // Non-invite visits already filtered by 24h
+        // Build the full end datetime from visit_date + end_time
+        const visitDateStr = visit.invite.visit_date.toISOString().split('T')[0];
+        const endHour = visit.invite.end_time.getHours();
+        const endMin = visit.invite.end_time.getMinutes();
+        const endDateTime = new Date(`${visitDateStr}T${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}:00`);
+        return now > endDateTime; // Only expire if we're past the end time
+      });
+
+      if (trulyExpired.length > 0) {
+        console.log(`🗑️ Expiring ${trulyExpired.length} unused visitor passes.`);
         
-        for (const visit of expiredVisits) {
+        for (const visit of trulyExpired) {
           const updated = await prisma.visit.update({
             where: { id: visit.id },
-            data: { status: 'Rejected' }, // Using Rejected as proxy for Expired based on schema
+            data: { status: 'Expired' }, // Proper Expired status instead of Rejected
             include: { host: { select: { name: true, email: true } } }
           });
           emitVisitUpdate(updated);

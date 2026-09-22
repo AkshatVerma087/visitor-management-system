@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { auth as authApi } from '../api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { UserPlus, Building2, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Building2, Eye, EyeOff, UserCircle, Lock, Mail, ChevronRight } from 'lucide-react';
 
 export default function Register() {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,20 +32,14 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 1. Register the user
-      const registerRes = await fetch('http://localhost:4000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      const registerData = await registerRes.json();
-
-      if (!registerRes.ok) {
-        throw new Error(registerData.error || 'Registration failed');
-      }
-
-      // 2. Automatically redirect them to login page after success
-      navigate('/login');
+      const { name, email, password, role } = formData;
+      const registerData = await authApi.register({ name, email, password, role });
+      
+      // Immediately log them in
+      const loginData = await authApi.login({ email, password });
+      
+      login(loginData.user, loginData.token);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

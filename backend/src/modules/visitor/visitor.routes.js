@@ -8,6 +8,9 @@ const router = express.Router();
 // Public route for Kiosk to register a walk-in visitor
 router.post('/walk-in', visitorController.registerWalkIn);
 
+// Public route for Kiosk QR scanner — auto check-in for pre-approved visitors only
+router.post('/:id/qr-checkin', visitorController.checkIn);
+
 // Protected routes for dashboard
 router.use(protect);
 

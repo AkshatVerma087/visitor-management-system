@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
+import { auth as authApi } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -11,16 +12,13 @@ export const AuthProvider = ({ children }) => {
     const fetchUser = async () => {
       if (!token) return;
       try {
-        const res = await fetch('http://localhost:4000/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        } else {
-          logout(); // Token is invalid/expired
-        }
+        const data = await authApi.me();
+        setUser(data.user);
       } catch (err) {
+        console.error('Failed to restore session:', err);
+        localStorage.removeItem('token');
+        setToken(null);
+      } finally {
         console.error('Failed to fetch user', err);
       }
     };

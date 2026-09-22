@@ -1,5 +1,7 @@
 const prisma = require('../../lib/prisma');
 const { getIo } = require('../../socket/socket');
+const QRCode = require('qrcode');
+const { sendHostNotification, sendApprovalQr } = require('../../lib/mailer');
 
 const emitVisitUpdate = (visit) => {
   try {
@@ -49,6 +51,9 @@ exports.registerWalkIn = async (data) => {
   });
 
   emitVisitUpdate(updatedVisit);
+
+  // Email the host to notify them about the walk-in (async, non-blocking)
+  sendHostNotification(host.email, host.name, visitor_name, purpose);
 
   return updatedVisit;
 };
@@ -105,20 +110,56 @@ exports.makeDecision = async ({ visitId, hostId, decision, idempotency_key }) =>
     })
   ]);
 
-  // TODO: Send Email with QR code if approved (Phase 4)
+  // If approved, generate a QR badge and email it to the visitor
+  if (decision === 'Approved') {
+    QRCode.toDataURL(visitId).then(qrDataUrl => {
+      sendApprovalQr(updatedVisit.visitor_email, updatedVisit.visitor_name, qrDataUrl);
+    }).catch(err => console.error('Failed to generate approval QR:', err));
+  }
 
   emitVisitUpdate(updatedVisit);
   return updatedVisit;
 };
 
 exports.checkIn = async (visitId) => {
-  // Fetch the visit to validate its state
-  const visit = await prisma.visit.findUnique({ where: { id: visitId } });
+  // Fetch the visit and its parent invite (if any) to validate state + time window
+  const visit = await prisma.visit.findUnique({
+    where: { id: visitId },
+    include: { invite: true } // Load parent invite for time window check
+  });
   if (!visit) throw new Error('Visit not found');
   
   // Can only check in if they are Approved
   if (visit.status !== 'Approved') {
     throw new Error(`Cannot check in visitor. Current status: ${visit.status}`);
+  }
+
+  // If this visit came from a pre-approval invite, validate the time window
+  if (visit.invite) {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const visitDate = visit.invite.visit_date.toISOString().split('T')[0];
+
+    // Check that today matches the scheduled visit date
+    if (today !== visitDate) {
+      throw new Error('This pass is not valid for today. Visit is scheduled for ' + visitDate);
+    }
+
+    // Check that current time is within the start_time – end_time window
+    // We compare hours and minutes only since start_time/end_time are stored as DateTime with date part
+    const startHour = visit.invite.start_time.getHours();
+    const startMin = visit.invite.start_time.getMinutes();
+    const endHour = visit.invite.end_time.getHours();
+    const endMin = visit.invite.end_time.getMinutes();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+
+    if (nowMinutes < startMinutes || nowMinutes > endMinutes) {
+      throw new Error(
+        `Check-in is only allowed between ${String(startHour).padStart(2,'0')}:${String(startMin).padStart(2,'0')} and ${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}. Pass has expired or is not yet valid.`
+      );
+    }
   }
 
   // Update status to CheckedIn and record the timestamp
@@ -141,7 +182,8 @@ exports.checkOut = async (visitId, securityId) => {
   const visit = await prisma.visit.findUnique({ where: { id: visitId } });
   if (!visit) throw new Error('Visit not found');
   
-  if (visit.status !== 'CheckedIn') {
+  // Allow checkout from both CheckedIn AND Overstay (overstay visitors were stuck before this fix)
+  if (visit.status !== 'CheckedIn' && visit.status !== 'Overstay') {
     throw new Error(`Cannot check out visitor. Current status: ${visit.status}`);
   }
 

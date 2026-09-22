@@ -20,6 +20,7 @@ enum VisitStatus {
   CheckedIn
   CheckedOut
   Overstay
+  Expired
 }
 
 enum VisitDecision {

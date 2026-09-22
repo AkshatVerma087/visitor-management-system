@@ -3,7 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Filter, Plus, X, Clock, CheckCircle2, AlertCircle, ChevronDown } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { visitors } from '../../api';
+import { getSocket } from '../../api/socket';
 
 // Helper component for status badges
 const StatusBadge = ({ status }) => {
@@ -14,6 +15,7 @@ const StatusBadge = ({ status }) => {
     CheckedOut: 'bg-zinc-100 text-zinc-600 before:bg-zinc-400',
     Overstay: 'bg-red-100 text-red-700 before:bg-red-500',
     Rejected: 'bg-red-100 text-red-700 before:bg-red-500',
+    Expired: 'bg-orange-100 text-orange-700 before:bg-orange-500',
   };
 
   const displayNames = {
@@ -22,7 +24,8 @@ const StatusBadge = ({ status }) => {
     CheckedIn: 'Checked in',
     CheckedOut: 'Checked out',
     Overstay: 'Overstay',
-    Rejected: 'Rejected'
+    Rejected: 'Rejected',
+    Expired: 'Expired'
   };
 
   return (
@@ -44,15 +47,11 @@ export default function SecurityDashboard() {
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch today's visitors
+  // Fetch today's visitors from the API
   const fetchTodayVisitors = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/visitors/today', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch today\'s visitors');
-      const data = await res.json();
-      setVisitors(data);
+      const data = await visitors.getWalkIns();
+      setVisits(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,10 +63,8 @@ export default function SecurityDashboard() {
   useEffect(() => {
     fetchTodayVisitors();
 
-    const socket = io('http://localhost:4000', {
-      withCredentials: true,
-    });
-
+    // Connect to Socket.io for real-time updates
+    const socket = getSocket();
     const todayStr = new Date().toISOString().split('T')[0];
 
     socket.on('connect', () => {
@@ -75,7 +72,7 @@ export default function SecurityDashboard() {
     });
 
     socket.on('visit:updated', (updatedVisit) => {
-      setVisitors(prev => {
+      setVisits(prev => {
         const exists = prev.find(v => v.id === updatedVisit.id);
         if (exists) {
           // Update selected visitor if they are currently open
@@ -90,37 +87,34 @@ export default function SecurityDashboard() {
     return () => socket.disconnect();
   }, [fetchTodayVisitors, user.office_id]);
 
-  const handleManualCheckout = async (visitId) => {
+  const handleCheckout = async (visitId) => {
     setIsProcessing(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/visitors/${visitId}/checkout`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Checkout failed');
+      const data = await visitors.checkOut(visitId);
+      
+      // Update local state and keep selected context intact
+      setVisits(prev => prev.map(v => v.id === visitId ? { ...v, status: data.status } : v));
+      if (selectedVisitor?.id === visitId) {
+        setSelectedVisitor({ ...selectedVisitor, status: data.status });
       }
     } catch (err) {
-      alert(err.message);
+      alert(`Error checking out: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleManualCheckIn = async (visitId) => {
+  const handleCheckin = async (visitId) => {
     setIsProcessing(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/visitors/${visitId}/checkin`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Check-in failed');
+      const data = await visitors.checkIn(visitId);
+      
+      setVisits(prev => prev.map(v => v.id === visitId ? { ...v, status: data.status } : v));
+      if (selectedVisitor?.id === visitId) {
+        setSelectedVisitor({ ...selectedVisitor, status: data.status });
       }
     } catch (err) {
-      alert(err.message);
+      alert(`Error checking in: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }

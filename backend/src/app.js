@@ -18,6 +18,7 @@ app.use('/api/auth', require('./modules/auth/auth.routes'));
 app.use('/api/employees', require('./modules/employee/employee.routes'));
 app.use('/api/visitors', require('./modules/visitor/visitor.routes'));
 app.use('/api/invites', require('./modules/invite/invite.routes'));
+app.use('/api/admin', require('./modules/admin/admin.routes'));
 
 // Global Error Handler
 app.use((err, req, res, next) => {

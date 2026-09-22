@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X, Plus, Trash2, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { invites } from '../../api';
 
 export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
   const { token } = useAuth();
@@ -49,17 +50,7 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/invites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ ...inviteData, visitors })
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create invite');
+      const data = await invites.create({ ...inviteData, visitors });
       
       // Successfully created, show the QR codes generated
       setGeneratedQRs(data.visits);

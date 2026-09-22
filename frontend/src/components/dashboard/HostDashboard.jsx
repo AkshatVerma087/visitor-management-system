@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../../context/AuthContext';
+import { visitors } from '../../api';
+import { getSocket } from '../../api/socket';
 import { Check, X, Clock, CalendarDays, User, Plus } from 'lucide-react';
 import InviteVisitorModal from './InviteVisitorModal';
 
@@ -14,11 +16,7 @@ export default function HostDashboard() {
   // Fetch the current host's assigned visits from the API
   const fetchVisits = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/visitors/host', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch visits');
-      const data = await res.json();
+      const data = await visitors.getHostVisits();
       setVisits(data);
     } catch (err) {
       setError(err.message);
@@ -28,32 +26,49 @@ export default function HostDashboard() {
   };
 
   useEffect(() => {
-    // Initial fetch of visits on component mount or token change
+    // Initial fetch of visits on component mount
     fetchVisits();
-    // In a real app we might poll or use websockets here for live updates
-  }, [token]);
+
+    // Connect to Socket.io for real-time updates (same pattern as SecurityDashboard)
+    const socket = getSocket();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    socket.on('connect', () => {
+      // Join the office room so we receive visit events for our office
+      socket.emit('join:office', { officeId: user.office_id, date: todayStr });
+    });
+
+    // Listen for visit updates — merge new/changed visits into local state
+    socket.on('visit:updated', (updatedVisit) => {
+      // Only care about visits assigned to this host
+      if (updatedVisit.host_id !== user.id) return;
+
+      setVisits(prev => {
+        const exists = prev.find(v => v.id === updatedVisit.id);
+        if (exists) {
+          // Update existing visit in the list
+          return prev.map(v => v.id === updatedVisit.id ? updatedVisit : v);
+        } else {
+          // New visit — add to the top of the list
+          return [updatedVisit, ...prev];
+        }
+      });
+    });
+
+    // Cleanup: disconnect socket when component unmounts
+    return () => socket.disconnect();
+  }, [token, user.office_id, user.id]);
 
   // Handle the action of approving or rejecting a specific visit
   const handleDecision = async (visitId, decision) => {
     try {
-      // Use random string as simple idempotency key for this demo
-      const idempotency_key = `${visitId}-${decision}-${Date.now()}`;
+      const data = await visitors.decision(visitId, decision);
       
-      const res = await fetch(`http://localhost:4000/api/visitors/${visitId}/decision`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ decision, idempotency_key })
-      });
-      
-      if (!res.ok) throw new Error('Failed to process decision');
-      
-      // Optimistically update the local state to reflect the change immediately
-      setVisits(visits.map(v => v.id === visitId ? { ...v, status: decision } : v));
+      setVisits(prev => prev.map(v => 
+        v.id === visitId ? { ...v, status: data.status } : v
+      ));
     } catch (err) {
-      alert(err.message);
+      alert(`Error: ${err.message}`);
     }
   };
 
@@ -166,6 +181,7 @@ export default function HostDashboard() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       visit.status === 'Approved' ? 'bg-green-100 text-green-800' :
                       visit.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                      visit.status === 'Expired' ? 'bg-orange-100 text-orange-800' :
                       'bg-zinc-100 text-zinc-800'
                     }`}>
                       {visit.status}
