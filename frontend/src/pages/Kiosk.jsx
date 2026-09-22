@@ -25,7 +25,8 @@ export default function Kiosk() {
     company: '',
     purpose: '',
     host_id: '',
-    photo_url: ''
+    photo_url: '',
+    duration_hours: '1'
   });
 
   const webcamRef = useRef(null);
@@ -34,6 +35,10 @@ export default function Kiosk() {
   const [scanResult, setScanResult] = useState(null); // { success: bool, message: string }
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef(null);
+
+  // ---- Check-out state ----
+  const [checkoutEmail, setCheckoutEmail] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Capture photo from webcam
   const capturePhoto = useCallback((e) => {
@@ -135,6 +140,23 @@ export default function Kiosk() {
     }
   };
 
+  // Submit check-out form
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault();
+    setCheckoutLoading(true);
+    setError('');
+
+    try {
+      const data = await visitors.kioskCheckout({ email: checkoutEmail });
+      setScanResult({ success: true, message: `Goodbye, ${data.visitor_name}! You are successfully checked out.` });
+      setCheckoutEmail('');
+    } catch (err) {
+      setScanResult({ success: false, message: err.message });
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   // ---- Success screen (shown after walk-in registration) ----
   if (success) {
     return (
@@ -159,9 +181,9 @@ export default function Kiosk() {
           </div>
           <CardTitle className="text-3xl font-bold tracking-tight text-zinc-900">Welcome</CardTitle>
           <CardDescription className="text-zinc-500">
-            {mode === 'walkin' 
-              ? 'Please register below to notify your host of your arrival' 
-              : 'Scan your QR e-pass for instant check-in'}
+            {mode === 'walkin' ? 'Please register below to notify your host of your arrival' :
+             mode === 'qrscan' ? 'Scan your QR e-pass for instant check-in' :
+             'Enter your email to check out'}
           </CardDescription>
 
           {/* ---- Mode toggle buttons ---- */}
@@ -179,6 +201,13 @@ export default function Kiosk() {
               onClick={() => { setMode('qrscan'); setScanResult(null); }}
             >
               <QrCode className="w-4 h-4 mr-2" /> Scan QR
+            </Button>
+            <Button
+              variant={mode === 'checkout' ? 'default' : 'outline'}
+              className={mode === 'checkout' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-600'}
+              onClick={() => { setMode('checkout'); setScanResult(null); setError(''); }}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" /> Check Out
             </Button>
           </div>
         </CardHeader>
@@ -257,24 +286,42 @@ export default function Kiosk() {
                 </div>
               </div>
 
-              <div className="space-y-2 pt-2">
-                <Label htmlFor="host_id">Who are you visiting? *</Label>
-                <div className="relative">
-                  <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="host_id">Who are you visiting? *</Label>
+                  <div className="relative">
+                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
+                    <select 
+                      id="host_id" 
+                      className="pl-10 flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-950 shadow-sm"
+                      required
+                      value={formData.host_id}
+                      onChange={handleChange}
+                    >
+                      <option value="" disabled>Select your host...</option>
+                      {hosts.map(host => (
+                        <option key={host.id} value={host.id}>{host.name} ({host.office?.name})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration_hours">Expected Duration *</Label>
                   <select 
-                    id="host_id" 
-                    className="pl-10 flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-950 shadow-sm"
+                    id="duration_hours" 
+                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-950 shadow-sm"
                     required
-                    value={formData.host_id}
+                    value={formData.duration_hours}
                     onChange={handleChange}
                   >
-                    <option value="" disabled>Select your host...</option>
-                    {hosts.map(host => (
-                      <option key={host.id} value={host.id}>{host.name} ({host.office?.name})</option>
-                    ))}
+                    <option value="1">1 Hour</option>
+                    <option value="2">2 Hours</option>
+                    <option value="4">4 Hours</option>
+                    <option value="8">Full Day (8 Hours)</option>
                   </select>
                 </div>
               </div>
+
               <div className="space-y-2 pt-2 pb-4">
                 <Label>Mandatory Security Photo *</Label>
                 <div className="border border-zinc-200 rounded-lg overflow-hidden bg-zinc-100 flex flex-col items-center justify-center p-2 min-h-[240px]">
@@ -309,6 +356,53 @@ export default function Kiosk() {
               </Button>
             </CardFooter>
           </form>
+        )}
+
+        {/* ==================== CHECK-OUT MODE ==================== */}
+        {mode === 'checkout' && (
+          <CardContent className="pt-6 pb-8">
+            {scanResult ? (
+              <div className="text-center py-8">
+                {scanResult.success ? (
+                  <>
+                    <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                    <p className="text-xl font-bold text-zinc-900 mb-2">Checked Out!</p>
+                    <p className="text-zinc-500">{scanResult.message}</p>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <p className="text-xl font-bold text-zinc-900 mb-2">Check-Out Failed</p>
+                    <p className="text-red-600 mb-4">{scanResult.message}</p>
+                  </>
+                )}
+                <Button
+                  className="mt-6 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => { setScanResult(null); }}
+                >
+                  Back
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleCheckoutSubmit} className="space-y-4">
+                {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
+                <div className="space-y-2">
+                  <Label htmlFor="checkout_email">Email Address</Label>
+                  <Input 
+                    id="checkout_email" 
+                    type="email" 
+                    placeholder="Enter your email to check out" 
+                    required 
+                    value={checkoutEmail} 
+                    onChange={(e) => setCheckoutEmail(e.target.value)} 
+                  />
+                </div>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12" disabled={checkoutLoading || !checkoutEmail}>
+                  {checkoutLoading ? 'Processing...' : 'Check Out Now'}
+                </Button>
+              </form>
+            )}
+          </CardContent>
         )}
       </Card>
     </div>

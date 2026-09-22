@@ -21,6 +21,9 @@ router.post('/walk-in', kioskLimiter, validate(walkInSchema), visitorController.
 // Public route for Kiosk QR scanner — auto check-in for pre-approved visitors only
 router.post('/:id/qr-checkin', kioskLimiter, visitorController.checkIn);
 
+// Public route for Kiosk checkout
+router.post('/kiosk-checkout', kioskLimiter, visitorController.kioskCheckout);
+
 // Protected routes for dashboard
 router.use(protect);
 

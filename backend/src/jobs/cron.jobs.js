@@ -20,17 +20,24 @@ const startCronJobs = () => {
       const now = new Date();
       
       // ==========================================
-      // 1. OVERSTAY DETECTION (8+ hours checked in)
+      // 1. OVERSTAY DETECTION
       // ==========================================
       const eightHoursAgo = new Date(now.getTime() - (8 * 60 * 60 * 1000));
-      const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
       
       const overstayViolators = await prisma.visit.findMany({
         where: {
           status: 'CheckedIn',
-          check_in_time: {
-            lt: eightHoursAgo // Checked in BEFORE 8 hours ago
-          }
+          OR: [
+            // If they have an explicit expected_end_time, check if we passed it
+            {
+              expected_end_time: { not: null, lt: now }
+            },
+            // Fallback for old records: Checked in BEFORE 8 hours ago
+            {
+              expected_end_time: null,
+              check_in_time: { lt: eightHoursAgo }
+            }
+          ]
         },
         include: { host: { select: { name: true, email: true } } }
       });
@@ -49,10 +56,32 @@ const startCronJobs = () => {
       }
 
       // ==========================================
-      // 2. AUTO-EXPIRE STALE PRE-APPROVALS
+      // 2. AUTO-EXPIRE STALE PRE-APPROVALS & PENDING WALK-INS
       // ==========================================
-      // Find Approved visits that have a parent invite whose end_time has passed,
-      // OR Approved visits without an invite that are older than 24 hours.
+      const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+      // Expire Pending Walk-Ins that crossed expected_end_time
+      const pendingWalkIns = await prisma.visit.findMany({
+        where: {
+          status: 'Pending',
+          expected_end_time: { not: null, lt: now }
+        },
+        include: { host: { select: { name: true, email: true } } }
+      });
+
+      if (pendingWalkIns.length > 0) {
+        console.log(`🗑️ Expiring ${pendingWalkIns.length} ignored walk-in requests.`);
+        for (const visit of pendingWalkIns) {
+          const updated = await prisma.visit.update({
+            where: { id: visit.id },
+            data: { status: 'Expired' },
+            include: { host: { select: { name: true, email: true } } }
+          });
+          emitVisitUpdate(updated);
+        }
+      }
+
+      // Expire Approved pre-invites
       const expiredVisits = await prisma.visit.findMany({
         where: {
           status: 'Approved',
@@ -61,11 +90,10 @@ const startCronJobs = () => {
             {
               invite_id: { not: null },
               invite: {
-                // The visit_date + end_time combination is in the past
                 visit_date: { lte: now }
               }
             },
-            // Walk-in approved visits without an invite: expire after 24h
+            // Walk-in approved visits without an invite: expire after 24h fallback
             {
               invite_id: null,
               expected_arrival: { lt: yesterday }

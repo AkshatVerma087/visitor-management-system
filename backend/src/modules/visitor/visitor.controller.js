@@ -55,11 +55,18 @@ exports.checkIn = async (req, res) => {
 
 exports.checkOut = async (req, res) => {
   try {
-    const visitId = req.params.id;
-    const result = await visitorService.checkOut(visitId, req.user.id);
-    res.json(result);
+    const updatedVisit = await visitorService.checkOut(req.params.id, req.user.id);
+    res.json(updatedVisit);
   } catch (error) {
-    console.error('Check-out error:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.kioskCheckout = async (req, res) => {
+  try {
+    const updatedVisit = await visitorService.kioskCheckout(req.body.email);
+    res.json(updatedVisit);
+  } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };

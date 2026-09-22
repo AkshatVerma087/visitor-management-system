@@ -7,7 +7,7 @@ const { sendHostNotification, sendApprovalQr } = require('../../lib/mailer');
 
 exports.registerWalkIn = async (data) => {
   // Extract visitor and host details from the incoming data
-  const { visitor_name, visitor_email, visitor_phone, company, purpose, host_id, photo_url } = data;
+  const { visitor_name, visitor_email, visitor_phone, company, purpose, host_id, photo_url, duration_hours } = data;
 
   // Validate that essential fields are provided
   if (!visitor_name || !visitor_email || !host_id) {
@@ -37,6 +37,10 @@ exports.registerWalkIn = async (data) => {
     throw new Error('Host not found');
   }
 
+  // Calculate expected end time based on duration (default 1 hr if not provided)
+  const hours = parseInt(duration_hours || 1, 10);
+  const expectedEnd = new Date(Date.now() + hours * 60 * 60 * 1000);
+
   // Create a new Visit record indicating a walk-in is waiting
   const updatedVisit = await prisma.visit.create({
     data: {
@@ -49,7 +53,8 @@ exports.registerWalkIn = async (data) => {
       host_id,
       office_id: host.office_id,
       status: 'Pending',
-      expected_arrival: new Date() // Walk-ins arrive immediately
+      expected_arrival: new Date(), // Walk-ins arrive immediately
+      expected_end_time: expectedEnd
     },
     include: {
       host: { select: { name: true, email: true } }
@@ -99,6 +104,14 @@ exports.makeDecision = async ({ visitId, hostId, decision, idempotency_key }) =>
   if (visit.host_id !== hostId) throw new Error('Unauthorized to approve this visit');
   if (visit.status !== 'Pending') throw new Error('Visit is already processed');
 
+  // Auto check-in for walk-ins if Approved
+  const isWalkIn = !visit.invite_id;
+  const newStatus = (decision === 'Approved' && isWalkIn) ? 'CheckedIn' : decision;
+  const checkInTime = newStatus === 'CheckedIn' ? new Date() : null;
+  
+  // If auto check-in, push the expected_end_time out relative to check_in_time if we want?
+  // We'll leave it as originally calculated from registration for simplicity.
+
   // 3. Process the approval in a transaction
   const [approval, updatedVisit] = await prisma.$transaction([
     prisma.approval.create({
@@ -111,7 +124,10 @@ exports.makeDecision = async ({ visitId, hostId, decision, idempotency_key }) =>
     }),
     prisma.visit.update({
       where: { id: visitId },
-      data: { status: decision },
+      data: { 
+        status: newStatus,
+        ...(checkInTime && { check_in_time: checkInTime })
+      },
       include: {
         host: { select: { name: true, email: true } }
       }
@@ -201,6 +217,38 @@ exports.checkOut = async (visitId, securityId) => {
       status: 'CheckedOut',
       check_out_time: new Date(),
       checked_out_by: securityId
+    },
+    include: {
+      host: { select: { name: true, email: true } }
+    }
+  });
+
+  emitVisitUpdate(updatedVisit);
+  return updatedVisit;
+};
+
+exports.kioskCheckout = async (email) => {
+  // Find active CheckedIn or Overstay visit for this email
+  const visits = await prisma.visit.findMany({
+    where: {
+      visitor_email: email,
+      status: { in: ['CheckedIn', 'Overstay'] }
+    },
+    orderBy: { created_at: 'desc' },
+    take: 1
+  });
+
+  if (visits.length === 0) {
+    throw new Error('No active check-in found for this email address.');
+  }
+
+  const visit = visits[0];
+  const updatedVisit = await prisma.visit.update({
+    where: { id: visit.id },
+    data: {
+      status: 'CheckedOut',
+      check_out_time: new Date(),
+      checked_out_by: 'Kiosk'
     },
     include: {
       host: { select: { name: true, email: true } }

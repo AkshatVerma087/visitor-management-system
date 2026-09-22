@@ -14,6 +14,7 @@ export const visitors = {
   qrCheckIn: (id) => apiClient(`/visitors/${id}/qr-checkin`, { method: 'POST' }),
   checkOut: (id) => apiClient(`/visitors/${id}/checkout`, { method: 'POST' }),
   decision: (id, data) => apiClient(`/visitors/${id}/decision`, { method: 'POST', body: JSON.stringify(data) }),
+  kioskCheckout: (data) => apiClient('/visitors/kiosk-checkout', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export const employees = {

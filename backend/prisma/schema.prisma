@@ -87,6 +87,7 @@ model Visit {
   check_in_time    DateTime?
   check_out_time   DateTime?
   checked_out_by   String?
+  expected_end_time DateTime?
   created_at       DateTime    @default(now())
   approvals        Approval[]
 
