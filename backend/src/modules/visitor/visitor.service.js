@@ -19,9 +19,15 @@ exports.registerWalkIn = async (data) => {
   if (photo_url && photo_url.startsWith('data:image')) {
     try {
       const base64Data = photo_url.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      if (buffer.length > 2 * 1024 * 1024) {
+        throw new Error('Photo size exceeds 2MB limit');
+      }
+
       const fileName = `visitor_${Date.now()}_${Math.round(Math.random()*1E9)}.jpg`;
       const uploadPath = path.join(__dirname, '../../..', 'public', 'uploads', fileName);
-      fs.writeFileSync(uploadPath, base64Data, 'base64');
+      fs.writeFileSync(uploadPath, buffer);
       savedPhotoUrl = `/uploads/${fileName}`;
     } catch (err) {
       console.error('Failed to save photo:', err);
