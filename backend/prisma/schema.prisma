@@ -76,6 +76,7 @@ model Visit {
   company          String?
   purpose          String?
   photo_url        String?
+  qr_code_url      String?
   host_id          String      @db.Uuid
   host             Employee    @relation(fields: [host_id], references: [id])
   office_id        String      @db.Uuid
