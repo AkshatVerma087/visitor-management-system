@@ -1,11 +1,12 @@
 const inviteService = require('./invite.service');
+const asyncHandler = require('../../utils/asyncHandler');
+const AppError = require('../../utils/AppError');
 
-exports.createInvite = async (req, res) => {
+exports.createInvite = asyncHandler(async (req, res) => {
+  const hostId = req.user.id;
+  const { event_title, visit_type, visit_date, start_time, end_time, note, visitors } = req.body;
+
   try {
-    const hostId = req.user.id;
-    // Extract invite details from request body
-    const { event_title, visit_type, visit_date, start_time, end_time, note, visitors } = req.body;
-
     const result = await inviteService.createInvite(hostId, {
       event_title,
       visit_type,
@@ -15,25 +16,20 @@ exports.createInvite = async (req, res) => {
       note,
       visitors
     });
-
     res.status(201).json(result);
   } catch (error) {
-    console.error('Create invite error:', error);
-    // If it's a rate limit error, return 429
-    if (error.message.includes('Daily invite limit reached')) {
-      return res.status(429).json({ error: error.message });
+    if (error.message && error.message.includes('Daily invite limit reached')) {
+      throw new AppError(error.message, 429);
     }
-    res.status(400).json({ error: error.message });
+    if (error.message && error.message.includes('Missing required')) {
+      throw new AppError(error.message, 400);
+    }
+    throw error;
   }
-};
+});
 
-exports.getInvites = async (req, res) => {
-  try {
-    const hostId = req.user.id;
-    const invites = await inviteService.getInvitesForHost(hostId);
-    res.json(invites);
-  } catch (error) {
-    console.error('Get invites error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
+exports.getInvites = asyncHandler(async (req, res) => {
+  const hostId = req.user.id;
+  const invites = await inviteService.getInvitesForHost(hostId);
+  res.json(invites);
+});

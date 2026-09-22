@@ -2,8 +2,10 @@ const authService = require('./auth.service');
 const prisma = require('../../lib/prisma');
 const jwtUtils = require('../../lib/jwt.utils');
 const jwt = require('jsonwebtoken');
+const asyncHandler = require('../../utils/asyncHandler');
+const AppError = require('../../utils/AppError');
 
-async function register(req, res, next) {
+const register = asyncHandler(async (req, res) => {
   try {
     const newEmployee = await authService.registerEmployee(req.body);
     res.status(201).json({
@@ -12,22 +14,20 @@ async function register(req, res, next) {
     });
   } catch (error) {
     if (error.message.includes('Missing required fields') || error.message.includes('already registered')) {
-      return res.status(400).json({ error: error.message });
+      throw new AppError(error.message, 400);
     }
-    next(error); // Pass to global error handler
+    throw error;
   }
-}
+});
 
-async function login(req, res, next) {
+const login = asyncHandler(async (req, res) => {
   try {
     const { email, password } = req.body;
     const employee = await authService.loginEmployee(email, password);
     
-    // Generate tokens
     const accessToken = jwtUtils.generateAccessToken(employee.id, employee.role, employee.office_id);
     const refreshToken = jwtUtils.generateRefreshToken(employee.id);
 
-    // Set HTTP-only cookie
     jwtUtils.setRefreshTokenCookie(res, refreshToken);
 
     res.status(200).json({
@@ -42,66 +42,55 @@ async function login(req, res, next) {
     });
   } catch (error) {
     if (error.message.includes('Invalid credentials') || error.message.includes('Missing')) {
-      return res.status(401).json({ error: error.message });
+      throw new AppError(error.message, 401);
     }
-    next(error);
+    throw error;
   }
-}
+});
 
-async function getMe(req, res, next) {
-  try {
-    const employee = await prisma.employee.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        office_id: true,
-      }
-    });
-
-    if (!employee) {
-      return res.status(404).json({ error: 'User not found' });
+const getMe = asyncHandler(async (req, res) => {
+  const employee = await prisma.employee.findUnique({
+    where: { id: req.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      office_id: true,
     }
+  });
 
-    res.status(200).json({ user: employee });
-  } catch (error) {
-    console.error('getMe error:', error);
-    res.status(500).json({ error: 'Failed to fetch user profile' });
+  if (!employee) {
+    throw new AppError('User not found', 404);
   }
-}
 
-async function refresh(req, res, next) {
+  res.status(200).json({ user: employee });
+});
+
+const refresh = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+  if (!refreshToken) {
+    throw new AppError('Refresh token not found', 401);
+  }
+
   try {
-    const refreshToken = req.cookies?.refreshToken;
-    if (!refreshToken) {
-      return res.status(401).json({ error: 'Refresh token not found' });
-    }
-
-    // Verify token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
-    
-    // Check if user still exists
     const employee = await prisma.employee.findUnique({ where: { id: decoded.id } });
     if (!employee) {
-      return res.status(401).json({ error: 'User not found' });
+      throw new AppError('User not found', 401);
     }
 
-    // Generate new access token
     const newAccessToken = jwtUtils.generateAccessToken(employee.id, employee.role, employee.office_id);
-    
     res.status(200).json({ token: newAccessToken });
   } catch (error) {
-    console.error('Refresh error:', error);
-    res.status(401).json({ error: 'Invalid or expired refresh token' });
+    throw new AppError('Invalid or expired refresh token', 401);
   }
-}
+});
 
-async function logout(req, res, next) {
+const logout = asyncHandler(async (req, res) => {
   jwtUtils.clearRefreshTokenCookie(res);
   res.status(200).json({ message: 'Logged out successfully' });
-}
+});
 
 module.exports = {
   register,

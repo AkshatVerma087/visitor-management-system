@@ -26,12 +26,7 @@ app.use('/api/invites', require('./modules/invite/invite.routes'));
 app.use('/api/admin', require('./modules/admin/admin.routes'));
 
 // Global Error Handler
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'Something went wrong',
-  });
-});
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 module.exports = app;
