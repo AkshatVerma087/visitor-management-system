@@ -1,34 +1,179 @@
 # Visitor Management System (VMS)
 
-Welcome to the Visitor Management System! This platform provides a seamless, secure, and highly efficient way to manage workplace visitors, schedule meetings, and issue digital QR passes.
+A full-stack workplace Visitor Management System for walk-in registration, host approval, pre-approved QR fast-track check-in, and real-time front-desk monitoring.
 
 ---
 
-## How to Use the Application
-
-The application is split into three primary roles, each serving a distinct purpose in the visitor lifecycle.
-
-### 1. The Host (Employees)
-Hosts are the employees who work at the office. They can schedule visits in advance or approve unexpected walk-ins.
-*   **Login**: Access the Host Dashboard using your employee credentials.
-*   **Invite a Visitor**: Click the "Invite Visitor" button. Fill in their name, email, event title, and the expected time window. The system will automatically email them a digital QR e-pass!
-*   **Approve Walk-ins**: If someone arrives unexpectedly to see you, you will instantly receive a real-time notification on your dashboard. Simply click **Approve** to grant them entry or **Reject** to deny access.
-
-### 2. The Visitor (Kiosk)
-When visitors arrive at the building, they will interact with the Self-Service Kiosk (typically an iPad or touchscreen computer at the front desk).
-*   **Walk-in Registration**: Visitors without an appointment tap "Register". They will enter their details (Name, Email, Host to visit, Purpose) and the kiosk will snap a photo of them for security. They must then wait in the lobby for the Host to approve them.
-*   **QR Fast-Track Check-in**: Visitors who were invited in advance can simply tap the "Scan QR" button on the kiosk. They hold up the QR code from their email, and the system instantly verifies their time window and checks them in!
-
-### 3. The Security Guard (Security Dashboard)
-The Security Guard monitors the front desk operations and ensures safety.
-*   **Monitor Arrivals**: The Security Dashboard updates in real-time. Guards can see exactly who is currently checked into the building and who is expected to arrive today.
-*   **View Details**: Clicking on any visitor reveals their photo, expected end time, and who approved their visit.
-*   **Manual Check-out**: While visitors can scan their QR code to check out on their way out, Security Guards can also manually check them out from the dashboard if they forget.
+## Table of Contents
+1. [Documentation](#documentation)
+2. [Prerequisites](#prerequisites)
+3. [Project Layout](#project-layout)
+4. [Installation Guide](#installation-guide)
+5. [Quick Role Guide](#quick-role-guide)
 
 ---
 
-## Deep Dive: How the Project Works
+## Documentation
 
-Want to learn about the architecture, the technology stack, how the security features are implemented, and the decisions we made along the way? 
+| Document | Description |
+| --- | --- |
+| **[Project Overview](./PROJECT_OVERVIEW.md)** | Full architecture, service diagram, workflows, and file-by-file map |
+| **[Complexity Analysis](./doc/COMPLEXITY_ANALYSIS.md)** | Time/space complexity, scalability, performance, and error handling |
+| **[Decisions Log](./doc/decisions.md)** | Architectural choices and trade-offs made during development |
+| **[Case Study Analysis](./doc/CASE_STUDY_1_VMS_FULL_ANALYSIS.md)** | Mapping against the LPU Case Study #1 problem statement |
 
-**[Click here to read the Detailed Project Overview](./PROJECT_OVERVIEW.md)**
+Start with the **[Project Overview](./PROJECT_OVERVIEW.md)** for how the system is connected and how each workflow runs.
+
+---
+
+## Prerequisites
+
+Install and keep running:
+
+- **Node.js** 18 or newer
+- **npm** 9 or newer
+- **PostgreSQL** (local or hosted, for example Neon)
+- **Redis** (local default `redis://localhost:6379`, or Upstash)
+
+Optional for email delivery:
+
+- A **Resend** API key (`RESEND_API_KEY`)
+
+---
+
+## Project layout
+
+```text
+visitor-management-system/
+├── README.md                 # This file
+├── PROJECT_OVERVIEW.md       # Deep dive into architecture and workflows
+├── doc/
+│   ├── COMPLEXITY_ANALYSIS.md
+│   ├── decisions.md
+│   └── CASE_STUDY_1_VMS_FULL_ANALYSIS.md
+└── vms/                      # Application monorepo (npm workspaces)
+    ├── package.json
+    ├── backend/              # Express API, Prisma, Socket.io, cron
+    └── frontend/             # React + Vite SPA
+```
+
+---
+
+## Installation Guide
+
+All commands below assume your shell is open at the repository root, then you move into `vms`.
+
+### 1. Install dependencies
+
+```bash
+cd vms
+npm install
+```
+
+This installs both workspace packages (`frontend` and `backend`).
+
+### 2. Configure the backend environment
+
+Create `vms/backend/.env` (or edit the existing one) with at least:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+JWT_SECRET=replace-with-a-long-random-string
+JWT_REFRESH_SECRET=replace-with-another-long-random-string
+PORT=4000
+FRONTEND_URL=http://localhost:5173
+REDIS_URL=redis://localhost:6379
+
+# Optional — emails log to console if omitted
+RESEND_API_KEY=
+SMTP_FROM=VMS <onboarding@resend.dev>
+```
+
+### 3. Prepare the database
+
+```bash
+cd vms/backend
+npx prisma migrate deploy
+npx prisma db seed
+```
+
+Seeded accounts (password for all: `password123`):
+
+| Email | Role |
+| --- | --- |
+| `admin@office.com` | Admin |
+| `host@office.com` | Host |
+| `security@office.com` | Security |
+
+### 4. Start Redis
+
+Ensure Redis is reachable at `REDIS_URL`. Local example:
+
+```bash
+redis-server
+```
+
+Invite daily limits will fail if Redis is down.
+
+### 5. Start the backend API
+
+```bash
+cd vms/backend
+npm run dev
+```
+
+- API: `http://localhost:4000`
+- Health check: `http://localhost:4000/health`
+- Socket.io: same host/port as the API
+
+### 6. Start the frontend
+
+In a second terminal:
+
+```bash
+cd vms/frontend
+npm run dev
+```
+
+- App: `http://localhost:5173`
+- API base URL is configured in `vms/frontend/src/config.js` (default port `4000`)
+
+### 7. Open the app
+
+| URL | Purpose |
+| --- | --- |
+| `http://localhost:5173/kiosk` | Visitor self-service kiosk (walk-in + QR scan) |
+| `http://localhost:5173/login` | Host / Security / Admin login |
+| `http://localhost:5173/register` | New employee registration |
+| `http://localhost:5173/dashboard` | Role-based dashboard after login |
+
+---
+
+## Quick role guide
+
+- **Host** — approve or reject walk-ins; pre-register guests and issue QR e-passes
+- **Visitor (Kiosk)** — register as a walk-in with a photo, or scan a QR for fast-track check-in
+- **Security** — live office board; manual check-in / check-out; overstay visibility
+- **Admin** — office analytics, employees, and approval audit
+
+For diagrams, request flows, and what each source file does, read the **[Project Overview](./PROJECT_OVERVIEW.md)**.
+
+---
+
+## Useful scripts
+
+| Location | Command | What it does |
+| --- | --- | --- |
+| `vms/backend` | `npm run dev` | API with nodemon |
+| `vms/backend` | `npm start` | API without nodemon |
+| `vms/backend` | `npx prisma studio` | Browse database UI |
+| `vms/backend` | `npx prisma migrate dev` | Create/apply migrations in development |
+| `vms/frontend` | `npm run dev` | Vite development server |
+| `vms/frontend` | `npm run build` | Production build |
+| `vms/frontend` | `npm run preview` | Preview production build |
+
+---
+
+## License
+
+Private academic / assignment project unless otherwise stated.
