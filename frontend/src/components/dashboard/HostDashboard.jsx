@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { visitors, invites as invitesApi } from '../../api';
 import { getSocket } from '../../api/socket';
 import { getImageUrl } from '../../config';
-import { Check, X, Clock, CalendarDays, User, Plus, Loader2 } from 'lucide-react';
+import { Check, X, Clock, CalendarDays, User, Plus, Loader2, History } from 'lucide-react';
 import { toast } from 'sonner';
 import InviteVisitorModal from './InviteVisitorModal';
 
@@ -210,6 +210,49 @@ export default function HostDashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Past Decisions / History Section */}
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-4 flex items-center">
+          <History className="w-5 h-5 mr-2 text-zinc-400" />
+          Past Decisions
+        </h2>
+        
+        {pastVisits.length === 0 ? (
+          <div className="bg-white border border-zinc-200 rounded-xl p-8 text-center shadow-sm">
+            <p className="text-zinc-500">No past decisions yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {pastVisits.map(visit => (
+              <div key={visit.id} className="bg-white border border-zinc-200 rounded-xl p-5 flex items-center justify-between shadow-sm">
+                <div className="flex items-center space-x-4">
+                  {visit.photo_url ? (
+                    <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-10 h-10 rounded-full object-cover shadow-sm border border-zinc-200" />
+                  ) : (
+                    <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center border border-zinc-200">
+                      <User className="w-5 h-5 text-zinc-400" />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-zinc-900">{visit.visitor_name}</h3>
+                    <p className="text-sm text-zinc-500">{new Date(visit.created_at || visit.expected_arrival).toLocaleDateString()} • {visit.company || 'Walk-in'}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    visit.status === 'Approved' || visit.status === 'CheckedIn' || visit.status === 'CheckedOut' ? 'bg-green-100 text-green-800' : 
+                    visit.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-zinc-100 text-zinc-800'
+                  }`}>
+                    {visit.status === 'CheckedIn' || visit.status === 'CheckedOut' ? 'Approved' : visit.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
