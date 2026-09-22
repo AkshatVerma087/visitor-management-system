@@ -18,11 +18,12 @@ A full-stack workplace Visitor Management System for walk-in registration, host 
 
 | Document | Description |
 | --- | --- |
-| **[Project Overview](./PROJECT_OVERVIEW.md)** | Full architecture, service diagram, workflows, and file-by-file map |
-| **[Complexity Analysis](./COMPLEXITY_ANALYSIS.md)** | Time/space complexity, scalability, performance, and error handling |
-| **[Decisions Log](./decisions.md)** | Architectural choices and trade-offs made during development |
+| **[Project Overview](./docs/PROJECT_OVERVIEW.md)** | Full architecture, service diagram, workflows, and file-by-file map |
+| **[Complexity Analysis](./docs/COMPLEXITY_ANALYSIS.md)** | Time/space complexity, scalability, performance, and error handling |
+| **[Decisions Log](./docs/decisions.md)** | Architectural choices and trade-offs made during development |
+| **[Design Guidelines](./docs/DESIGN_GUIDELINES.md)** | Anti-vibe-coded design principles and audit checklist |
 
-Start with the **[Project Overview](./PROJECT_OVERVIEW.md)** for how the system is connected and how each workflow runs.
+Start with the **[Project Overview](./docs/PROJECT_OVERVIEW.md)** for how the system is connected and how each workflow runs.
 
 ---
 
@@ -46,13 +47,15 @@ Optional for email delivery:
 ```text
 visitor-management-system/
 ├── README.md                 # This file
-├── PROJECT_OVERVIEW.md       # Deep dive into architecture and workflows
-├── COMPLEXITY_ANALYSIS.md
-├── decisions.md
-└── vms/                      # Application monorepo (npm workspaces)
-    ├── package.json
-    ├── backend/              # Express API, Prisma, Socket.io, cron
-    └── frontend/             # React + Vite SPA
+├── docs/
+│   ├── PROJECT_OVERVIEW.md   # Deep dive into architecture and workflows
+│   ├── COMPLEXITY_ANALYSIS.md
+│   ├── DESIGN_GUIDELINES.md
+│   └── decisions.md
+├── backend/                  # Express API, Prisma, Socket.io, cron
+├── frontend/                 # React + Vite SPA
+├── docker-compose.yml
+└── package.json              # npm workspaces root
 ```
 
 ---

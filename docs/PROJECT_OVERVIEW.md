@@ -6,7 +6,7 @@ Complete reference for the Visitor Management System: what it is, how services c
 
 - [Complexity Analysis](./COMPLEXITY_ANALYSIS.md) — time/space complexity, scalability, performance, error handling
 - [Decisions Log](./decisions.md) — why we chose this stack and these patterns
-- [README](./README.md) — how to install and run the project
+- [README](../README.md) — how to install and run the project
 
 ---
 
@@ -481,7 +481,7 @@ Additional host accounts may also be seeded (see `prisma/seed.js`).
 
 ## 13. How to read this repo
 
-1. Run the stack using [README](./README.md).
+1. Run the stack using [README](../README.md).
 2. Skim this overview for service wiring and workflows.
 3. Read [decisions.md](./decisions.md) for why the architecture looks this way.
 4. Read [COMPLEXITY_ANALYSIS.md](./COMPLEXITY_ANALYSIS.md) for performance and grading-oriented analysis.
