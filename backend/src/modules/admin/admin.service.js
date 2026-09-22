@@ -48,12 +48,11 @@ exports.getEmployees = async () => {
       name: true,
       email: true,
       role: true,
-      created_at: true,
       office: {
         select: { name: true }
       }
     },
-    orderBy: { created_at: 'desc' }
+    orderBy: { name: 'asc' }
   });
 };
 
