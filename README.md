@@ -10,6 +10,7 @@ A full-stack workplace Visitor Management System for walk-in registration, host 
 3. [Project Layout](#project-layout)
 4. [Installation Guide](#installation-guide)
 5. [Quick Role Guide](#quick-role-guide)
+6. [Run with Docker (Alternative)](#run-with-docker-alternative)
 
 ---
 
@@ -171,6 +172,54 @@ For diagrams, request flows, and what each source file does, read the **[Project
 
 ---
 
+## Run with Docker (Alternative)
+
+If you prefer Docker over manual setup, you can spin up the entire stack with a single command. This will automatically start PostgreSQL, Redis, the Backend API, and the Frontend.
+
+### Prerequisites
+
+- **Docker** and **Docker Compose** installed on your machine
+
+### 1. Build and start all services
+
+```bash
+cd vms
+docker compose up --build
+```
+
+This starts 4 containers:
+
+| Service | URL / Port |
+| --- | --- |
+| Frontend | `http://localhost:3000` |
+| Backend API | `http://localhost:4000` |
+| PostgreSQL | `localhost:5432` |
+| Redis | `localhost:6379` |
+
+### 2. Run database migrations and seed (first time only)
+
+Open a second terminal while the containers are running:
+
+```bash
+cd vms
+docker compose exec backend npx prisma migrate deploy
+docker compose exec backend npx prisma db seed
+```
+
+### 3. Open the app
+
+Visit `http://localhost:3000` in your browser. Login with the seeded credentials listed in the Installation Guide above.
+
+### Stop and clean up
+
+```bash
+docker compose down          # Stop all containers
+docker compose down -v       # Stop and also delete database volume
+```
+
+---
+
 ## License
 
 Private academic / assignment project unless otherwise stated.
+
