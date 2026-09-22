@@ -7,7 +7,6 @@ Complete reference for the Visitor Management System: what it is, how services c
 - [Complexity Analysis](./COMPLEXITY_ANALYSIS.md) — time/space complexity, scalability, performance, error handling
 - [Decisions Log](./decisions.md) — why we chose this stack and these patterns
 - [README](./README.md) — how to install and run the project
-- [Case Study Analysis](./CASE_STUDY_1_VMS_FULL_ANALYSIS.md) — requirement coverage vs LPU Case Study #1
 
 ---
 
@@ -486,4 +485,3 @@ Additional host accounts may also be seeded (see `prisma/seed.js`).
 2. Skim this overview for service wiring and workflows.
 3. Read [decisions.md](./decisions.md) for why the architecture looks this way.
 4. Read [COMPLEXITY_ANALYSIS.md](./COMPLEXITY_ANALYSIS.md) for performance and grading-oriented analysis.
-5. Use [CASE_STUDY_1_VMS_FULL_ANALYSIS.md](./CASE_STUDY_1_VMS_FULL_ANALYSIS.md) when mapping features back to the assignment PDF.

@@ -20,7 +20,6 @@ A full-stack workplace Visitor Management System for walk-in registration, host 
 | **[Project Overview](./PROJECT_OVERVIEW.md)** | Full architecture, service diagram, workflows, and file-by-file map |
 | **[Complexity Analysis](./COMPLEXITY_ANALYSIS.md)** | Time/space complexity, scalability, performance, and error handling |
 | **[Decisions Log](./decisions.md)** | Architectural choices and trade-offs made during development |
-| **[Case Study Analysis](./CASE_STUDY_1_VMS_FULL_ANALYSIS.md)** | Mapping against the LPU Case Study #1 problem statement |
 
 Start with the **[Project Overview](./PROJECT_OVERVIEW.md)** for how the system is connected and how each workflow runs.
 
@@ -49,7 +48,6 @@ visitor-management-system/
 ├── PROJECT_OVERVIEW.md       # Deep dive into architecture and workflows
 ├── COMPLEXITY_ANALYSIS.md
 ├── decisions.md
-├── CASE_STUDY_1_VMS_FULL_ANALYSIS.md
 └── vms/                      # Application monorepo (npm workspaces)
     ├── package.json
     ├── backend/              # Express API, Prisma, Socket.io, cron
