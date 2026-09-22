@@ -12,7 +12,8 @@ const validate = (schema) => {
     } catch (error) {
       if (error instanceof ZodError) {
         // Format Zod errors into a clean string (e.g., "email: Invalid email, password: Too short")
-        const formattedErrors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+        const issues = error.issues || error.errors || [];
+        const formattedErrors = issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
         return res.status(400).json({ error: formattedErrors });
       }
       next(error);

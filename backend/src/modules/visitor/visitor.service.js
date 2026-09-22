@@ -161,7 +161,9 @@ exports.checkIn = async (visitId) => {
   // If this visit came from a pre-approval invite, validate the time window
   if (visit.invite) {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const offset = now.getTimezoneOffset() * 60000;
+    const localNow = new Date(now.getTime() - offset);
+    const today = localNow.toISOString().split('T')[0];
     const visitDate = visit.invite.visit_date.toISOString().split('T')[0];
 
     // Check that today matches the scheduled visit date
@@ -276,7 +278,8 @@ exports.getTodayVisitors = async (officeId, skip = 0, take = 50) => {
       }
     },
     include: {
-      host: { select: { name: true, email: true } }
+      host: { select: { name: true, email: true } },
+      invite: { select: { id: true, event_title: true, visit_type: true } }
     },
     orderBy: { expected_arrival: 'asc' },
     skip: Number(skip),

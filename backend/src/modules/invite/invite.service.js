@@ -58,7 +58,8 @@ exports.createInvite = async (hostId, data) => {
             status: 'Approved', // Pre-approved!
             host_id: hostId,
             office_id: host.office_id,
-            expected_arrival: startTimeObj
+            expected_arrival: startTimeObj,
+            expected_end_time: endTimeObj
           }))
         }
       },
@@ -83,10 +84,16 @@ exports.createInvite = async (hostId, data) => {
     console.error('Failed to emit socket event', err);
   }
 
-  // 3. Generate QR codes for each visitor and email them
+  // 3. Generate QR codes for each visitor, update DB, and email them
   const visitsWithQr = await Promise.all(invite.visits.map(async (visit) => {
     // Generate base64 QR code image from the Visit ID
     const qrCodeDataUrl = await QRCode.toDataURL(visit.id);
+
+    // Update the visit record with the generated QR code
+    await prisma.visit.update({
+      where: { id: visit.id },
+      data: { qr_code_url: qrCodeDataUrl }
+    });
 
     // Email the QR e-pass to the visitor (async, non-blocking)
     sendVisitorQrPass(
@@ -101,7 +108,8 @@ exports.createInvite = async (hostId, data) => {
 
     return {
       ...visit,
-      qr_code: qrCodeDataUrl
+      qr_code: qrCodeDataUrl,
+      qr_code_url: qrCodeDataUrl
     };
   }));
 
