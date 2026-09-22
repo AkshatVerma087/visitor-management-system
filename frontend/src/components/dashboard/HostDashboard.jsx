@@ -7,6 +7,8 @@ import { getImageUrl } from '../../config';
 import { Check, X, Clock, CalendarDays, User, Plus, Loader2, History } from 'lucide-react';
 import { toast } from 'sonner';
 import InviteVisitorModal from './InviteVisitorModal';
+import VisitDetailsModal from './VisitDetailsModal';
+import InviteDetailsModal from './InviteDetailsModal';
 
 export default function HostDashboard() {
   const { user, token } = useAuth();
@@ -15,6 +17,8 @@ export default function HostDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState(null);
+  const [selectedInvite, setSelectedInvite] = useState(null);
 
   // Fetch the current host's assigned visits from the API
   const fetchVisitsAndInvites = async () => {
@@ -40,30 +44,33 @@ export default function HostDashboard() {
     const socket = getSocket();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    socket.on('connect', () => {
-      // Join the office room so we receive visit events for our office
+    const handleConnect = () => {
       socket.emit('join:office', { officeId: user.office_id, date: todayStr });
-    });
+    };
 
-    // Listen for visit updates — merge new/changed visits into local state
-    socket.on('visit:updated', (updatedVisit) => {
-      // Only care about visits assigned to this host
+    if (socket.connected) {
+      handleConnect();
+    }
+    socket.on('connect', handleConnect);
+
+    const handleVisitUpdated = (updatedVisit) => {
       if (updatedVisit.host_id !== user.id) return;
 
       setVisits(prev => {
         const exists = prev.find(v => v.id === updatedVisit.id);
         if (exists) {
-          // Update existing visit in the list
           return prev.map(v => v.id === updatedVisit.id ? updatedVisit : v);
         } else {
-          // New visit — add to the top of the list
           return [updatedVisit, ...prev];
         }
       });
-    });
+    };
+    socket.on('visit:updated', handleVisitUpdated);
 
-    // Cleanup: disconnect socket when component unmounts
-    return () => socket.disconnect();
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('visit:updated', handleVisitUpdated);
+    };
   }, [token, user.office_id, user.id]);
 
   // Handle the action of approving or rejecting a specific visit
@@ -112,6 +119,18 @@ export default function HostDashboard() {
         onSuccess={() => fetchVisitsAndInvites()}
       />
 
+      <VisitDetailsModal 
+        isOpen={!!selectedVisit}
+        visit={selectedVisit}
+        onClose={() => setSelectedVisit(null)}
+      />
+
+      <InviteDetailsModal 
+        isOpen={!!selectedInvite}
+        invite={selectedInvite}
+        onClose={() => setSelectedInvite(null)}
+      />
+
       {/* Action required section */}
       <div>
         <h2 className="text-lg font-semibold text-zinc-900 mb-4 flex items-center">
@@ -131,7 +150,11 @@ export default function HostDashboard() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pendingVisits.map(visit => (
-              <div key={visit.id} className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div 
+                key={visit.id} 
+                className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setSelectedVisit(visit)}
+              >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center space-x-4">
                     {visit.photo_url ? (
@@ -143,7 +166,16 @@ export default function HostDashboard() {
                     )}
                     <div>
                       <h3 className="font-semibold text-zinc-900 text-lg">{visit.visitor_name}</h3>
-                      <p className="text-sm text-zinc-500">{visit.company || 'No Company'} • {visit.purpose || 'No Purpose'}</p>
+                      <p className="text-sm text-zinc-500">
+                        {visit.company || 'No Company'} • {visit.purpose || 'No Purpose'}
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Duration: {
+                          visit.expected_end_time 
+                            ? Math.round((new Date(visit.expected_end_time) - new Date(visit.expected_arrival)) / 3600000) 
+                            : 1
+                        } Hour(s)
+                      </p>
                     </div>
                   </div>
                   <span className="text-xs text-zinc-400">
@@ -154,7 +186,7 @@ export default function HostDashboard() {
                 <div className="flex space-x-3 pt-3 border-t border-zinc-100">
                   <Button 
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                    onClick={() => handleDecision(visit.id, 'Approved')}
+                    onClick={(e) => { e.stopPropagation(); handleDecision(visit.id, 'Approved'); }}
                   >
                     <Check className="w-4 h-4 mr-2" />
                     Approve
@@ -162,7 +194,7 @@ export default function HostDashboard() {
                   <Button 
                     variant="outline"
                     className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                    onClick={() => handleDecision(visit.id, 'Rejected')}
+                    onClick={(e) => { e.stopPropagation(); handleDecision(visit.id, 'Rejected'); }}
                   >
                     <X className="w-4 h-4 mr-2" />
                     Reject
@@ -186,7 +218,11 @@ export default function HostDashboard() {
           ) : (
             <div className="divide-y divide-zinc-100">
               {invites.map(invite => (
-                <div key={invite.id} className="p-4 flex flex-col hover:bg-zinc-50 transition-colors">
+                <div 
+                  key={invite.id} 
+                  className="p-4 flex flex-col hover:bg-zinc-50 transition-colors cursor-pointer"
+                  onClick={() => setSelectedInvite(invite)}
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-zinc-900 text-base">{invite.event_title}</p>
@@ -200,11 +236,6 @@ export default function HostDashboard() {
                       </span>
                     </div>
                   </div>
-                  {invite.visits && invite.visits.length > 0 && (
-                    <div className="mt-3 text-sm text-zinc-600">
-                      <span className="font-medium">Guests:</span> {invite.visits.map(v => v.visitor_name).join(', ')}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -226,7 +257,11 @@ export default function HostDashboard() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pastVisits.map(visit => (
-              <div key={visit.id} className="bg-white border border-zinc-200 rounded-xl p-5 flex items-center justify-between shadow-sm">
+              <div 
+                key={visit.id} 
+                className="bg-white border border-zinc-200 rounded-xl p-5 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setSelectedVisit(visit)}
+              >
                 <div className="flex items-center space-x-4">
                   {visit.photo_url ? (
                     <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-10 h-10 rounded-full object-cover shadow-sm border border-zinc-200" />
