@@ -27,6 +27,12 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
   // Generated QRs to show after success
   const [generatedQRs, setGeneratedQRs] = useState(null);
 
+  // Get current date and time for validation
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const isToday = inviteData.visit_date === todayStr;
+  const currentTimeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+
   if (!isOpen) return null;
 
   const handleInviteChange = (e) => setInviteData({ ...inviteData, [e.target.id]: e.target.value });
@@ -51,7 +57,15 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
     setError('');
 
     try {
-      const data = await invites.create({ ...inviteData, visitors });
+      // Calculate local timezone offset in format ±HH:MM
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const minutes = String(absOffset % 60).padStart(2, '0');
+      const timezone = `${sign}${hours}:${minutes}`;
+
+      const data = await invites.create({ ...inviteData, visitors, timezone });
       
       // Successfully created, show the QR codes generated
       setGeneratedQRs(data.visits);
@@ -134,16 +148,16 @@ export default function InviteVisitorModal({ isOpen, onClose, onSuccess }) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="visit_date">Date</Label>
-                    <Input type="date" id="visit_date" required value={inviteData.visit_date} onChange={handleInviteChange} />
+                    <Input type="date" id="visit_date" required min={todayStr} value={inviteData.visit_date} onChange={handleInviteChange} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-2">
                       <Label htmlFor="start_time">Start Time</Label>
-                      <Input type="time" id="start_time" required value={inviteData.start_time} onChange={handleInviteChange} />
+                      <Input type="time" id="start_time" required min={isToday ? currentTimeStr : undefined} value={inviteData.start_time} onChange={handleInviteChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="end_time">End Time</Label>
-                      <Input type="time" id="end_time" required value={inviteData.end_time} onChange={handleInviteChange} />
+                      <Input type="time" id="end_time" required min={inviteData.start_time || (isToday ? currentTimeStr : undefined)} value={inviteData.end_time} onChange={handleInviteChange} />
                     </div>
                   </div>
                 </div>

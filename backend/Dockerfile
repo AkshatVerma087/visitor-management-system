@@ -1,7 +1,10 @@
 # ---- Backend Dockerfile ----
 # Simple single-stage: install deps, generate Prisma client, run
 
-FROM node:18-alpine
+FROM node:22-slim
+
+# Install OpenSSL for Prisma
+RUN apt-get update -y && apt-get install -y openssl
 
 WORKDIR /app
 

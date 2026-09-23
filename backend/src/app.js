@@ -6,14 +6,16 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
 app.use(cookieParser());
 
-// Global Rate Limiter
+// Global Rate Limiter (Relaxed for testing)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 10000, // limit each IP to 10,000 requests per windowMs for testing
   message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
 });
 app.use('/api/', apiLimiter);

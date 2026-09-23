@@ -1,7 +1,7 @@
 # ---- Frontend Dockerfile ----
 # Simple: install deps, build static files, serve with a lightweight server
 
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 

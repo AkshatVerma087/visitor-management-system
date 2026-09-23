@@ -19,6 +19,7 @@ export default function HostDashboard() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [selectedInvite, setSelectedInvite] = useState(null);
+  const [processingAction, setProcessingAction] = useState({ id: null, action: null });
 
   // Fetch the current host's assigned visits from the API
   const fetchVisitsAndInvites = async () => {
@@ -75,6 +76,7 @@ export default function HostDashboard() {
 
   // Handle the action of approving or rejecting a specific visit
   const handleDecision = async (visitId, decision) => {
+    setProcessingAction({ id: visitId, action: decision });
     try {
       const idempotency_key = crypto.randomUUID(); // Generate unique key for idempotency
       const data = await visitors.decision(visitId, { decision, idempotency_key });
@@ -85,6 +87,8 @@ export default function HostDashboard() {
       toast.success(`Visitor ${decision.toLowerCase()} successfully`);
     } catch (err) {
       toast.error(`Error: ${err.message}`);
+    } finally {
+      setProcessingAction({ id: null, action: null });
     }
   };
 
@@ -158,7 +162,7 @@ export default function HostDashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center space-x-4">
                     {visit.photo_url ? (
-                      <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-12 h-12 rounded-full object-cover shadow-sm border border-zinc-200" />
+                      <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-12 h-12 rounded-full object-cover shadow-sm border border-zinc-200" onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(visit.visitor_name)}&background=e0f2fe&color=0369a1`; }} />
                     ) : (
                       <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center border border-zinc-200">
                         <User className="w-6 h-6 text-zinc-400" />
@@ -187,6 +191,7 @@ export default function HostDashboard() {
                   <Button 
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm"
                     onClick={(e) => { e.stopPropagation(); handleDecision(visit.id, 'Approved'); }}
+                    isLoading={processingAction.id === visit.id && processingAction.action === 'Approved'}
                   >
                     <Check className="w-4 h-4 mr-2" />
                     Approve
@@ -195,6 +200,7 @@ export default function HostDashboard() {
                     variant="outline"
                     className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                     onClick={(e) => { e.stopPropagation(); handleDecision(visit.id, 'Rejected'); }}
+                    isLoading={processingAction.id === visit.id && processingAction.action === 'Rejected'}
                   >
                     <X className="w-4 h-4 mr-2" />
                     Reject
@@ -264,7 +270,7 @@ export default function HostDashboard() {
               >
                 <div className="flex items-center space-x-4">
                   {visit.photo_url ? (
-                    <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-10 h-10 rounded-full object-cover shadow-sm border border-zinc-200" />
+                    <img src={getImageUrl(visit.photo_url)} alt="Visitor" className="w-10 h-10 rounded-full object-cover shadow-sm border border-zinc-200" onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(visit.visitor_name)}&background=e0f2fe&color=0369a1`; }} />
                   ) : (
                     <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center border border-zinc-200">
                       <User className="w-5 h-5 text-zinc-400" />

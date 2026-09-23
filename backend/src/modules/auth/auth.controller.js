@@ -6,46 +6,32 @@ const asyncHandler = require('../../utils/asyncHandler');
 const AppError = require('../../utils/AppError');
 
 const register = asyncHandler(async (req, res) => {
-  try {
-    const newEmployee = await authService.registerEmployee(req.body);
-    res.status(201).json({
-      message: 'Employee registered successfully',
-      data: newEmployee
-    });
-  } catch (error) {
-    if (error.message.includes('Missing required fields') || error.message.includes('already registered')) {
-      throw new AppError(error.message, 400);
-    }
-    throw error;
-  }
+  const newEmployee = await authService.registerEmployee(req.body);
+  res.status(201).json({
+    message: 'Employee registered successfully',
+    data: newEmployee
+  });
 });
 
 const login = asyncHandler(async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const employee = await authService.loginEmployee(email, password);
-    
-    const accessToken = jwtUtils.generateAccessToken(employee.id, employee.role, employee.office_id);
-    const refreshToken = jwtUtils.generateRefreshToken(employee.id);
+  const { email, password } = req.body;
+  const employee = await authService.loginEmployee(email, password);
+  
+  const accessToken = jwtUtils.generateAccessToken(employee.id, employee.role, employee.office_id);
+  const refreshToken = jwtUtils.generateRefreshToken(employee.id);
 
-    jwtUtils.setRefreshTokenCookie(res, refreshToken);
+  jwtUtils.setRefreshTokenCookie(res, refreshToken);
 
-    res.status(200).json({
-      token: accessToken,
-      user: {
-        id: employee.id,
-        name: employee.name,
-        email: employee.email,
-        role: employee.role,
-        office_id: employee.office_id
-      }
-    });
-  } catch (error) {
-    if (error.message.includes('Invalid credentials') || error.message.includes('Missing')) {
-      throw new AppError(error.message, 401);
+  res.status(200).json({
+    token: accessToken,
+    user: {
+      id: employee.id,
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+      office_id: employee.office_id
     }
-    throw error;
-  }
+  });
 });
 
 const getMe = asyncHandler(async (req, res) => {

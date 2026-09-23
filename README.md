@@ -20,6 +20,7 @@ A full-stack workplace Visitor Management System for walk-in registration, host 
 | --- | --- |
 | **[Project Overview](./docs/PROJECT_OVERVIEW.md)** | Full architecture, service diagram, workflows, and file-by-file map |
 | **[Complexity Analysis](./docs/COMPLEXITY_ANALYSIS.md)** | Time/space complexity, scalability, performance, and error handling |
+| **[Security Audit](./docs/SECURITY_AUDIT_REPORT.md)** | Evaluation of the backend against 12 critical security principles |
 | **[Decisions Log](./docs/decisions.md)** | Architectural choices and trade-offs made during development |
 | **[Design Guidelines](./docs/DESIGN_GUIDELINES.md)** | Anti-vibe-coded design principles and audit checklist |
 

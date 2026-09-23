@@ -81,40 +81,15 @@ const startCronJobs = () => {
         }
       }
 
-      // Expire Approved pre-invites
-      const expiredVisits = await prisma.visit.findMany({
+      // Expire Approved pre-invites and walk-ins that have passed their expected end time
+      const trulyExpired = await prisma.visit.findMany({
         where: {
           status: 'Approved',
-          OR: [
-            // Pre-approved visits: check if the invite's end_time (on the visit_date) has passed
-            {
-              invite_id: { not: null },
-              invite: {
-                visit_date: { lte: now }
-              }
-            },
-            // Walk-in approved visits without an invite: expire after 24h fallback
-            {
-              invite_id: null,
-              expected_arrival: { lt: yesterday }
-            }
-          ]
+          expected_end_time: { not: null, lt: now }
         },
         include: {
-          host: { select: { name: true, email: true } },
-          invite: true // Load invite to do a precise end_time check
+          host: { select: { name: true, email: true } }
         }
-      });
-
-      // Filter invite-based visits more precisely using the end_time
-      const trulyExpired = expiredVisits.filter(visit => {
-        if (!visit.invite) return true; // Non-invite visits already filtered by 24h
-        // Build the full end datetime from visit_date + end_time
-        const visitDateStr = visit.invite.visit_date.toISOString().split('T')[0];
-        const endHour = visit.invite.end_time.getHours();
-        const endMin = visit.invite.end_time.getMinutes();
-        const endDateTime = new Date(`${visitDateStr}T${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}:00`);
-        return now > endDateTime; // Only expire if we're past the end time
       });
 
       if (trulyExpired.length > 0) {

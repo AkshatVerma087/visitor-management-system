@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../../lib/prisma');
+const AppError = require('../../utils/AppError');
 
 async function registerEmployee(data) {
   // Extract user details from the payload
@@ -7,12 +8,12 @@ async function registerEmployee(data) {
 
   // Validate presence of essential fields
   if (!name || !email || !password || !office_id) {
-    throw new Error('Missing required fields: name, email, password, office_id');
+    throw new AppError('Missing required fields: name, email, password, office_id', 400);
   }
 
   const existing = await prisma.employee.findUnique({ where: { email } });
   if (existing) {
-    throw new Error('Email already registered');
+    throw new AppError('Email already registered', 400);
   }
 
   // Securely hash the user's password before storing
@@ -45,19 +46,19 @@ async function registerEmployee(data) {
 async function loginEmployee(email, password) {
   // Ensure both credentials are provided
   if (!email || !password) {
-    throw new Error('Missing email or password');
+    throw new AppError('Missing email or password', 401);
   }
 
   // Find the employee by their unique email
   const employee = await prisma.employee.findUnique({ where: { email } });
   if (!employee) {
-    throw new Error('Invalid credentials');
+    throw new AppError('Invalid credentials', 401);
   }
 
   // Compare provided password with stored hash
   const isMatch = await bcrypt.compare(password, employee.password);
   if (!isMatch) {
-    throw new Error('Invalid credentials');
+    throw new AppError('Invalid credentials', 401);
   }
 
   return employee;

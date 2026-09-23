@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, CheckCircle2, UserCircle, Camera, RefreshCcw, QrCode, ClipboardList, XCircle } from 'lucide-react';
+import { Building2, CheckCircle2, UserCircle, Camera, RefreshCcw, QrCode, ClipboardList, XCircle, ShieldCheck } from 'lucide-react';
 import Webcam from 'react-webcam';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { visitors, employees } from '../api';
@@ -160,9 +160,9 @@ export default function Kiosk() {
   // ---- Success screen (shown after walk-in registration) ----
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
-        <Card className="w-full max-w-md shadow-xl border-zinc-200 text-center py-12">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="w-full max-w-md shadow-lg border-border text-center py-12 bg-card">
+          <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold mb-2">You're all set!</CardTitle>
           <CardDescription className="text-lg">
             Your host has been notified. Please have a seat.
@@ -173,238 +173,328 @@ export default function Kiosk() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
-      <Card className="w-full max-w-lg shadow-xl border-zinc-200">
-        <CardHeader className="text-center pb-6 border-b border-zinc-100">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4 shadow-sm">
-            <Building2 className="w-8 h-8 text-white" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 p-4 md:p-8 font-sans">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start">
+        
+        {/* LEFT COLUMN: Main Form Area */}
+        <Card className="shadow-lg border-border bg-card overflow-hidden">
+          
+          {/* Top Navigation Pill */}
+          <div className="p-4 border-b border-border flex justify-center bg-background">
+            <div className="flex bg-muted p-1 rounded-lg">
+              <button
+                type="button"
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'walkin' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => { setMode('walkin'); setScanResult(null); }}
+              >
+                <ClipboardList className="w-4 h-4 inline-block mr-2" /> Walk-In
+              </button>
+              <button
+                type="button"
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'qrscan' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => { setMode('qrscan'); setScanResult(null); }}
+              >
+                <QrCode className="w-4 h-4 inline-block mr-2" /> Scan QR
+              </button>
+              <button
+                type="button"
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'checkout' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => { setMode('checkout'); setScanResult(null); setError(''); }}
+              >
+                <CheckCircle2 className="w-4 h-4 inline-block mr-2" /> Check Out
+              </button>
+            </div>
           </div>
-          <CardTitle className="text-3xl font-bold tracking-tight text-zinc-900">Welcome</CardTitle>
-          <CardDescription className="text-zinc-500">
-            {mode === 'walkin' ? 'Please register below to notify your host of your arrival' :
-             mode === 'qrscan' ? 'Scan your QR e-pass for instant check-in' :
-             'Enter your email to check out'}
-          </CardDescription>
 
-          {/* ---- Mode toggle buttons ---- */}
-          <div className="flex gap-2 mt-4 justify-center">
-            <Button
-              variant={mode === 'walkin' ? 'default' : 'outline'}
-              className={mode === 'walkin' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-600'}
-              onClick={() => { setMode('walkin'); setScanResult(null); }}
-            >
-              <ClipboardList className="w-4 h-4 mr-2" /> Walk-In
-            </Button>
-            <Button
-              variant={mode === 'qrscan' ? 'default' : 'outline'}
-              className={mode === 'qrscan' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-600'}
-              onClick={() => { setMode('qrscan'); setScanResult(null); }}
-            >
-              <QrCode className="w-4 h-4 mr-2" /> Scan QR
-            </Button>
-            <Button
-              variant={mode === 'checkout' ? 'default' : 'outline'}
-              className={mode === 'checkout' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-600'}
-              onClick={() => { setMode('checkout'); setScanResult(null); setError(''); }}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" /> Check Out
-            </Button>
+          {/* Welcome Header */}
+          <div className="text-center py-8 px-6 border-b border-border bg-card">
+            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+              <ShieldCheck className="w-7 h-7 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">Welcome</h1>
+            <p className="text-sm text-muted-foreground">
+              {mode === 'walkin' ? 'Please register below to notify your host of your arrival' :
+               mode === 'qrscan' ? 'Scan your QR e-pass for instant check-in' :
+               'Enter your email to check out'}
+            </p>
           </div>
-        </CardHeader>
 
-        {/* ==================== QR SCAN MODE ==================== */}
-        {mode === 'qrscan' && (
-          <CardContent className="pt-6 pb-8">
-            {scanResult ? (
-              // Show result after scanning
-              <div className="text-center py-8">
-                {scanResult.success ? (
-                  <>
-                    <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <p className="text-xl font-bold text-zinc-900 mb-2">Checked In!</p>
-                    <p className="text-zinc-500">{scanResult.message}</p>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                    <p className="text-xl font-bold text-zinc-900 mb-2">Check-In Failed</p>
-                    <p className="text-red-600 mb-4">{scanResult.message}</p>
-                  </>
-                )}
-                <Button
-                  className="mt-6 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => { setScanResult(null); setMode('qrscan'); }}
-                >
-                  Scan Another
-                </Button>
-              </div>
-            ) : (
-              // Show the QR camera scanner
-              <div>
-                {scanning && (
-                  <p className="text-center text-zinc-500 mb-4">Processing check-in...</p>
-                )}
-                <div id="qr-reader" className="rounded-lg overflow-hidden"></div>
-                <p className="text-sm text-zinc-400 text-center mt-4">
-                  Point your camera at the QR code on your e-pass
-                </p>
-              </div>
-            )}
-          </CardContent>
-        )}
-
-        {/* ==================== WALK-IN FORM MODE ==================== */}
-        {mode === 'walkin' && (
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4 pt-6">
-              {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
-              
-              <div className="space-y-2">
-                <Label htmlFor="visitor_name">Full Name *</Label>
-                <Input id="visitor_name" placeholder="Jane Doe" required value={formData.visitor_name} onChange={handleChange} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="visitor_email">Email *</Label>
-                  <Input id="visitor_email" type="email" placeholder="jane@example.com" required value={formData.visitor_email} onChange={handleChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="visitor_phone">Phone</Label>
-                  <Input id="visitor_phone" type="tel" placeholder="(555) 000-0000" value={formData.visitor_phone} onChange={handleChange} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input id="company" placeholder="Acme Corp" value={formData.company} onChange={handleChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="purpose">Purpose of Visit</Label>
-                  <Input id="purpose" placeholder="Meeting" value={formData.purpose} onChange={handleChange} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="host_id">Who are you visiting? *</Label>
-                  <div className="relative">
-                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                    <select 
-                      id="host_id" 
-                      className="pl-10 flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-950 shadow-sm"
-                      required
-                      value={formData.host_id}
-                      onChange={handleChange}
-                    >
-                      <option value="" disabled>Select your host...</option>
-                      {hosts.map(host => (
-                        <option key={host.id} value={host.id}>{host.name} ({host.office?.name})</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration_hours">Expected Duration *</Label>
-                  <select 
-                    id="duration_hours" 
-                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-950 shadow-sm"
-                    required
-                    value={formData.duration_hours}
-                    onChange={handleChange}
-                  >
-                    <option value="1">1 Hour</option>
-                    <option value="2">2 Hours</option>
-                    <option value="4">4 Hours</option>
-                    <option value="8">Full Day (8 Hours)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2 pb-4">
-                <Label>Mandatory Security Photo *</Label>
-                <div className="border border-zinc-200 rounded-lg overflow-hidden bg-zinc-100 flex flex-col items-center justify-center p-2 min-h-[240px]">
-                  {!formData.photo_url ? (
+          {/* ==================== QR SCAN MODE ==================== */}
+          {mode === 'qrscan' && (
+            <div className="p-8">
+              {scanResult ? (
+                <div className="text-center py-8">
+                  {scanResult.success ? (
                     <>
-                      <Webcam
-                        audio={false}
-                        ref={webcamRef}
-                        screenshotFormat="image/jpeg"
-                        className="w-full max-w-[320px] rounded"
-                        videoConstraints={{ facingMode: "user" }}
-                      />
-                      <Button onClick={capturePhoto} variant="secondary" className="mt-3 bg-white shadow-sm hover:bg-zinc-50 border border-zinc-200">
-                        <Camera className="w-4 h-4 mr-2" /> Take Photo
-                      </Button>
+                      <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                      <p className="text-xl font-bold text-foreground mb-2">Checked In!</p>
+                      <p className="text-muted-foreground">{scanResult.message}</p>
                     </>
                   ) : (
                     <>
-                      <img src={formData.photo_url} alt="Security snapshot" className="w-full max-w-[320px] rounded" />
-                      <Button onClick={retakePhoto} variant="outline" className="mt-3 text-zinc-600">
-                        <RefreshCcw className="w-4 h-4 mr-2" /> Retake
-                      </Button>
+                      <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                      <p className="text-xl font-bold text-foreground mb-2">Check-In Failed</p>
+                      <p className="text-red-600 mb-4">{scanResult.message}</p>
                     </>
                   )}
+                  <Button
+                    className="mt-6"
+                    onClick={() => { setScanResult(null); setMode('qrscan'); }}
+                  >
+                    Scan Another
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  {scanning && (
+                    <p className="text-center text-muted-foreground mb-4">Processing check-in...</p>
+                  )}
+                  <div id="qr-reader" className="rounded-lg overflow-hidden border border-border"></div>
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    Point your camera at the QR code on your e-pass
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== WALK-IN FORM MODE ==================== */}
+          {mode === 'walkin' && (
+            <form onSubmit={handleSubmit} className="divide-y divide-border">
+              {error && <div className="p-4 bg-red-50 text-red-600 text-sm border-b border-red-100">{error}</div>}
+              
+              {/* SECTION: YOUR DETAILS */}
+              <div className="p-8 space-y-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <h3 className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Your Details</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="visitor_name">Full Name *</Label>
+                    <Input id="visitor_name" placeholder="Jane Doe" required value={formData.visitor_name} onChange={handleChange} className="shadow-none bg-background" />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="visitor_email">Email *</Label>
+                      <Input id="visitor_email" type="email" placeholder="jane@example.com" required value={formData.visitor_email} onChange={handleChange} className="shadow-none bg-background" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="visitor_phone">Phone</Label>
+                      <Input id="visitor_phone" type="tel" placeholder="(555) 000-0000" value={formData.visitor_phone} onChange={handleChange} className="shadow-none bg-background" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-            </CardContent>
-            <CardFooter className="pb-8">
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12 text-lg shadow-sm" disabled={loading || !formData.photo_url}>
-                {loading ? 'Processing...' : 'Check In'}
-              </Button>
-            </CardFooter>
-          </form>
-        )}
+              {/* SECTION: VISIT DETAILS */}
+              <div className="p-8 space-y-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <h3 className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Visit Details</h3>
+                </div>
 
-        {/* ==================== CHECK-OUT MODE ==================== */}
-        {mode === 'checkout' && (
-          <CardContent className="pt-6 pb-8">
-            {scanResult ? (
-              <div className="text-center py-8">
-                {scanResult.success ? (
-                  <>
-                    <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <p className="text-xl font-bold text-zinc-900 mb-2">Checked Out!</p>
-                    <p className="text-zinc-500">{scanResult.message}</p>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                    <p className="text-xl font-bold text-zinc-900 mb-2">Check-Out Failed</p>
-                    <p className="text-red-600 mb-4">{scanResult.message}</p>
-                  </>
-                )}
-                <Button
-                  className="mt-6 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => { setScanResult(null); }}
-                >
-                  Back
-                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company</Label>
+                    <Input id="company" placeholder="Acme Corp" value={formData.company} onChange={handleChange} className="shadow-none bg-background" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="purpose">Purpose of Visit</Label>
+                    <Input id="purpose" placeholder="Meeting" value={formData.purpose} onChange={handleChange} className="shadow-none bg-background" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="host_id">Who are you visiting? *</Label>
+                    <div className="relative">
+                      <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <select 
+                        id="host_id" 
+                        className="pl-9 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        required
+                        value={formData.host_id}
+                        onChange={handleChange}
+                      >
+                        <option value="" disabled>Select your host...</option>
+                        {hosts.map(host => (
+                          <option key={host.id} value={host.id}>{host.name} ({host.office?.name})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="duration_hours">Expected Duration *</Label>
+                    <select 
+                      id="duration_hours" 
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                      value={formData.duration_hours}
+                      onChange={handleChange}
+                    >
+                      <option value="1">1 Hour</option>
+                      <option value="2">2 Hours</option>
+                      <option value="4">4 Hours</option>
+                      <option value="8">Full Day (8 Hours)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleCheckoutSubmit} className="space-y-4">
-                {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
+
+              {/* SECTION: SECURITY PHOTO */}
+              <div className="p-8 space-y-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <h3 className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Security Photo</h3>
+                </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="checkout_email">Email Address</Label>
-                  <Input 
-                    id="checkout_email" 
-                    type="email" 
-                    placeholder="Enter your email to check out" 
-                    required 
-                    value={checkoutEmail} 
-                    onChange={(e) => setCheckoutEmail(e.target.value)} 
-                  />
+                  <div className="border border-border rounded-lg overflow-hidden bg-muted/50 flex flex-col items-center justify-center p-4 min-h-[240px]">
+                    {!formData.photo_url ? (
+                      <>
+                        <Webcam
+                          audio={false}
+                          ref={webcamRef}
+                          screenshotFormat="image/jpeg"
+                          className="w-full max-w-[280px] rounded border border-border shadow-sm mb-4"
+                          videoConstraints={{ facingMode: "user" }}
+                        />
+                        <Button type="button" onClick={capturePhoto} variant="secondary" className="bg-background shadow-none border border-border">
+                          <Camera className="w-4 h-4 mr-2" /> Take Photo
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <img src={formData.photo_url} alt="Security snapshot" className="w-full max-w-[280px] rounded border border-border shadow-sm mb-4" />
+                        <Button type="button" onClick={retakePhoto} variant="outline" className="shadow-none">
+                          <RefreshCcw className="w-4 h-4 mr-2" /> Retake
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12" disabled={checkoutLoading || !checkoutEmail}>
-                  {checkoutLoading ? 'Processing...' : 'Check Out Now'}
+              </div>
+
+              {/* SUBMIT */}
+              <div className="p-8 bg-muted/30">
+                <Button type="submit" className="w-full font-semibold h-12 text-lg" disabled={loading || !formData.photo_url}>
+                  {loading ? 'Processing...' : 'Complete Check In'}
                 </Button>
-              </form>
-            )}
-          </CardContent>
-        )}
-      </Card>
+              </div>
+            </form>
+          )}
+
+          {/* ==================== CHECK-OUT MODE ==================== */}
+          {mode === 'checkout' && (
+            <div className="p-8">
+              {scanResult ? (
+                <div className="text-center py-8">
+                  {scanResult.success ? (
+                    <>
+                      <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                      <p className="text-xl font-bold text-foreground mb-2">Checked Out!</p>
+                      <p className="text-muted-foreground">{scanResult.message}</p>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                      <p className="text-xl font-bold text-foreground mb-2">Check-Out Failed</p>
+                      <p className="text-red-600 mb-4">{scanResult.message}</p>
+                    </>
+                  )}
+                  <Button
+                    className="mt-6"
+                    onClick={() => { setScanResult(null); }}
+                  >
+                    Back
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleCheckoutSubmit} className="space-y-4 max-w-sm mx-auto">
+                  {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
+                  <div className="space-y-2">
+                    <Label htmlFor="checkout_email">Email Address</Label>
+                    <Input 
+                      id="checkout_email" 
+                      type="email" 
+                      placeholder="Enter your email to check out" 
+                      required 
+                      value={checkoutEmail} 
+                      onChange={(e) => setCheckoutEmail(e.target.value)}
+                      className="shadow-none"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full font-semibold h-11" disabled={checkoutLoading || !checkoutEmail}>
+                    {checkoutLoading ? 'Processing...' : 'Check Out Now'}
+                  </Button>
+                </form>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* RIGHT COLUMN: Live Visitor Pass Preview */}
+        <div className="hidden lg:block relative">
+          <div className="sticky top-8 space-y-3">
+            <p className="text-xs text-muted-foreground text-center font-medium">Your pass builds as you register</p>
+            
+            <Card className="overflow-hidden border-border shadow-lg bg-card">
+              <div className="bg-primary text-primary-foreground px-4 py-3 text-xs font-bold tracking-widest uppercase">
+                Visitor Pass
+              </div>
+              
+              <CardContent className="p-8 flex flex-col items-center">
+                {/* Avatar */}
+                <div className="w-24 h-24 rounded-full bg-muted border border-border flex items-center justify-center mb-5 overflow-hidden">
+                  {formData.photo_url ? (
+                    <img src={formData.photo_url} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <UserCircle className="w-10 h-10 text-muted-foreground/30" />
+                  )}
+                </div>
+                
+                <h3 className="text-xl font-bold text-foreground mb-1 text-center line-clamp-1">
+                  {formData.visitor_name || 'Your name'}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-8 text-center line-clamp-1">
+                  {formData.company || 'Company'}
+                </p>
+
+                <div className="w-full space-y-3 text-sm">
+                  <div className="flex justify-between border-b border-border pb-2">
+                    <span className="text-muted-foreground">Visiting:</span>
+                    <span className="font-medium text-foreground text-right truncate max-w-[140px]">
+                      {formData.host_id ? hosts.find(h => h.id === formData.host_id)?.name || '—' : '—'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-border pb-2">
+                    <span className="text-muted-foreground">Duration:</span>
+                    <span className="font-medium text-foreground">
+                      {formData.duration_hours ? `${formData.duration_hours} Hour(s)` : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full mt-10">
+                  <div className={`w-full py-2.5 rounded border text-center text-xs font-bold tracking-widest uppercase transition-colors ${
+                    formData.visitor_name && formData.visitor_email && formData.host_id && formData.photo_url 
+                      ? 'bg-primary/10 border-primary text-primary' 
+                      : 'bg-muted border-border border-dashed text-muted-foreground'
+                  }`}>
+                    {formData.visitor_name && formData.visitor_email && formData.host_id && formData.photo_url 
+                      ? 'Ready to Check In' 
+                      : 'Awaiting Details'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

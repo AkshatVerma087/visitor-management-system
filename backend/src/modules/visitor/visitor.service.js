@@ -4,6 +4,7 @@ const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
 const { sendHostNotification, sendApprovalQr } = require('../../lib/mailer');
+const AppError = require('../../utils/AppError');
 
 exports.registerWalkIn = async (data) => {
   // Extract visitor and host details from the incoming data
@@ -11,7 +12,7 @@ exports.registerWalkIn = async (data) => {
 
   // Validate that essential fields are provided
   if (!visitor_name || !visitor_email || !host_id) {
-    throw new Error('Missing required fields: visitor_name, visitor_email, host_id');
+    throw new AppError('Missing required fields: visitor_name, visitor_email, host_id', 400);
   }
 
   // Handle Base64 photo upload
@@ -22,7 +23,7 @@ exports.registerWalkIn = async (data) => {
       const buffer = Buffer.from(base64Data, 'base64');
       
       if (buffer.length > 2 * 1024 * 1024) {
-        throw new Error('Photo size exceeds 2MB limit');
+        throw new AppError('Photo size exceeds 2MB limit', 400);
       }
 
       const fileName = `visitor_${Date.now()}_${Math.round(Math.random()*1E9)}.jpg`;
@@ -40,7 +41,7 @@ exports.registerWalkIn = async (data) => {
   });
 
   if (!host) {
-    throw new Error('Host not found');
+    throw new AppError('Host not found', 404);
   }
 
   // Calculate expected end time based on duration (default 1 hr if not provided)
@@ -88,11 +89,11 @@ exports.getVisitsForHost = async (hostId, skip = 0, take = 50) => {
 exports.makeDecision = async ({ visitId, hostId, decision, idempotency_key }) => {
   // Ensure the decision is strictly Approved or Rejected
   if (!['Approved', 'Rejected'].includes(decision)) {
-    throw new Error('Invalid decision');
+    throw new AppError('Invalid decision', 400);
   }
   // Generic error to prevent exposing internal architecture (security fix)
   if (!idempotency_key) {
-    throw new Error('Invalid request parameters');
+    throw new AppError('Invalid request parameters', 400);
   }
 
   // 1. Check if idempotency key already exists to prevent duplicate processing
@@ -106,9 +107,9 @@ exports.makeDecision = async ({ visitId, hostId, decision, idempotency_key }) =>
 
   // 2. Fetch visit and verify ownership
   const visit = await prisma.visit.findUnique({ where: { id: visitId } });
-  if (!visit) throw new Error('Visit not found');
-  if (visit.host_id !== hostId) throw new Error('Unauthorized to approve this visit');
-  if (visit.status !== 'Pending') throw new Error('Visit is already processed');
+  if (!visit) throw new AppError('Visit not found', 404);
+  if (visit.host_id !== hostId) throw new AppError('Unauthorized to approve this visit', 403);
+  if (visit.status !== 'Pending') throw new AppError('Visit is already processed', 400);
 
   // Auto check-in for walk-ins if Approved
   const isWalkIn = !visit.invite_id;
@@ -157,11 +158,11 @@ exports.checkIn = async (visitId) => {
     where: { id: visitId },
     include: { invite: true } // Load parent invite for time window check
   });
-  if (!visit) throw new Error('Visit not found');
+  if (!visit) throw new AppError('Visit not found', 404);
   
   // Can only check in if they are Approved
   if (visit.status !== 'Approved') {
-    throw new Error(`Cannot check in visitor. Current status: ${visit.status}`);
+    throw new AppError(`Cannot check in visitor. Current status: ${visit.status}`, 400);
   }
 
   // If this visit came from a pre-approval invite, validate the time window
@@ -174,7 +175,7 @@ exports.checkIn = async (visitId) => {
 
     // Check that today matches the scheduled visit date
     if (today !== visitDate) {
-      throw new Error('This pass is not valid for today. Visit is scheduled for ' + visitDate);
+      throw new AppError('This pass is not valid for today. Visit is scheduled for ' + visitDate, 400);
     }
 
     // Check that current time is within the start_time – end_time window
@@ -188,8 +189,8 @@ exports.checkIn = async (visitId) => {
     const endMinutes = endHour * 60 + endMin;
 
     if (nowMinutes < startMinutes || nowMinutes > endMinutes) {
-      throw new Error(
-        `Check-in is only allowed between ${String(startHour).padStart(2,'0')}:${String(startMin).padStart(2,'0')} and ${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}. Pass has expired or is not yet valid.`
+      throw new AppError(
+        `Check-in is only allowed between ${String(startHour).padStart(2,'0')}:${String(startMin).padStart(2,'0')} and ${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}. Pass has expired or is not yet valid.`, 400
       );
     }
   }
@@ -212,11 +213,11 @@ exports.checkIn = async (visitId) => {
 
 exports.checkOut = async (visitId, securityId) => {
   const visit = await prisma.visit.findUnique({ where: { id: visitId } });
-  if (!visit) throw new Error('Visit not found');
+  if (!visit) throw new AppError('Visit not found', 404);
   
   // Allow checkout from both CheckedIn AND Overstay (overstay visitors were stuck before this fix)
   if (visit.status !== 'CheckedIn' && visit.status !== 'Overstay') {
-    throw new Error(`Cannot check out visitor. Current status: ${visit.status}`);
+    throw new AppError(`Cannot check out visitor. Current status: ${visit.status}`, 400);
   }
 
   const updatedVisit = await prisma.visit.update({
@@ -247,7 +248,7 @@ exports.kioskCheckout = async (email) => {
   });
 
   if (visits.length === 0) {
-    throw new Error('No active check-in found for this email address.');
+    throw new AppError('No active check-in found for this email address.', 404);
   }
 
   const visit = visits[0];

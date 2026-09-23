@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Kiosk from './pages/Kiosk';
@@ -19,7 +20,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/kiosk" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/kiosk" element={<Kiosk />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

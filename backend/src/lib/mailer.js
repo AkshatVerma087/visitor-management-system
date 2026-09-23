@@ -22,7 +22,7 @@ const sendHostNotification = async (hostEmail, hostName, visitorName, purpose) =
   }
 
   try {
-    const data = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: `VMS System <${getFromAddress()}>`,
       to: hostEmail,
       subject: `New Visitor: ${visitorName} is waiting for your approval`,
@@ -39,9 +39,14 @@ const sendHostNotification = async (hostEmail, hostName, visitorName, purpose) =
       `
     });
 
-    console.log(` Host notification sent to ${hostEmail}:`, data.id);
+    if (error) {
+      console.error(' Failed to send host notification email:', error);
+      return;
+    }
+
+    console.log(` Host notification sent to ${hostEmail}:`, data?.id);
   } catch (err) {
-    console.error(' Failed to send host notification email:', err.message);
+    console.error(' SDK Crash sending host notification email:', err.message);
   }
 };
 

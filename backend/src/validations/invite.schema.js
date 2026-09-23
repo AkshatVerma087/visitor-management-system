@@ -14,5 +14,6 @@ exports.createInviteSchema = z.object({
       visitor_phone: z.string().optional(),
       company: z.string().optional()
     })
-  ).min(1, 'At least one visitor is required').max(5, 'Maximum of 5 visitors allowed')
+  ).min(1, 'At least one visitor is required').max(5, 'Maximum of 5 visitors allowed'),
+  timezone: z.string().optional()
 });

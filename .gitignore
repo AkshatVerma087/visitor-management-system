@@ -5,4 +5,9 @@ dist-ssr
 .env
 .env.*
 !.env.example
+backend/public/uploads/
+backend/scripts/
+backend/test-*.js
+backend/revert-expired.js
+docs/VIDEO_SCRIPT.md
 .DS_Store
