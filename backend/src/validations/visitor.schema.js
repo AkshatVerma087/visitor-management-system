@@ -7,7 +7,8 @@ exports.walkInSchema = z.object({
   company: z.string().optional(),
   purpose: z.string().optional(),
   host_id: z.string().uuid('Invalid host ID'),
-  photo_url: z.string().min(1, 'Mandatory security photo is missing')
+  photo_url: z.string().min(1, 'Mandatory security photo is missing'),
+  duration_hours: z.union([z.string(), z.number()]).optional()
 });
 
 exports.decisionSchema = z.object({
