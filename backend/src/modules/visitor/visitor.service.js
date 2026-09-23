@@ -143,7 +143,11 @@ exports.makeDecision = async ({ visitId, hostId, decision, idempotency_key }) =>
 
   // If approved, generate a QR badge and email it to the visitor
   if (decision === 'Approved') {
-    QRCode.toDataURL(visitId).then(qrDataUrl => {
+    QRCode.toDataURL(visitId, {
+      width: 400,
+      margin: 2,
+      errorCorrectionLevel: 'M'
+    }).then(qrDataUrl => {
       sendApprovalQr(updatedVisit.visitor_email, updatedVisit.visitor_name, qrDataUrl);
     }).catch(err => console.error('Failed to generate approval QR:', err));
   }

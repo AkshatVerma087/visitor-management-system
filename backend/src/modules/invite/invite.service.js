@@ -100,7 +100,11 @@ exports.createInvite = async (hostId, data) => {
   // 3. Generate QR codes for each visitor, update DB, and email them
   const visitsWithQr = await Promise.all(invite.visits.map(async (visit) => {
     // Generate base64 QR code image from the Visit ID
-    const qrCodeDataUrl = await QRCode.toDataURL(visit.id);
+    const qrCodeDataUrl = await QRCode.toDataURL(visit.id, {
+      width: 400,
+      margin: 2,
+      errorCorrectionLevel: 'M'
+    });
 
     // Update the visit record with the generated QR code
     await prisma.visit.update({
